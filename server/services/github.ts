@@ -72,10 +72,18 @@ export async function downloadRepository(url: string, directoryPath?: string) {
     const files = await getAllFiles(targetPath);
     const patterns = getPatterns();
 
-    // Filter files based on patterns
-    const filteredFiles = files.filter(file => 
-      !patterns.some(pattern => minimatch(file, pattern))
-    );
+    // Filter files based on patterns with proper options for directory matching
+    const filteredFiles = files.filter(file => {
+      // Check each pattern
+      return !patterns.some(pattern => {
+        // Use proper minimatch options for directory patterns
+        const matchOptions = {
+          dot: true, // Match dotfiles
+          matchBase: !pattern.includes('/'), // Match basename for patterns without slashes
+        };
+        return minimatch(file, pattern, matchOptions);
+      });
+    });
 
     // Read content of each file
     const contents = await Promise.all(

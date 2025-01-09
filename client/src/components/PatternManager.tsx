@@ -22,9 +22,9 @@ interface PatternManagerProps {
 }
 
 export default function PatternManager({ disabled = false, fileTypes = [], repoUrl, directoryPath }: PatternManagerProps) {
-  const [isOpen, setIsOpen] = useState(false);
   const [customPatterns, setCustomPatterns] = useState("");
   const [selectedExtensions, setSelectedExtensions] = useState<string[]>([]);
+  const [showCurrentPatterns, setShowCurrentPatterns] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -121,33 +121,8 @@ export default function PatternManager({ disabled = false, fileTypes = [], repoU
 
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-          <div className="flex items-center justify-between w-full">
-            <CardTitle>Customize Repository Content</CardTitle>
-            <CollapsibleTrigger className="hover:bg-accent hover:text-accent-foreground rounded-md p-2">
-              {isOpen ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </CollapsibleTrigger>
-          </div>
-
-          <CollapsibleContent>
-            <div className="pt-4">
-              {isLoading ? (
-                <div className="animate-pulse bg-muted h-24 rounded-md" />
-              ) : patterns?.current ? (
-                <div className="bg-muted p-3 rounded-md">
-                  <pre className="whitespace-pre-wrap text-sm">
-                    {patterns.current.join("\n")}
-                  </pre>
-                </div>
-              ) : null}
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
+      <CardHeader>
+        <CardTitle>Customize Repository Content</CardTitle>
       </CardHeader>
 
       <CardContent className="space-y-4">
@@ -225,22 +200,48 @@ export default function PatternManager({ disabled = false, fileTypes = [], repoU
               {resetMutation.isPending ? "Resetting..." : "Reset to Defaults"}
             </Button>
           </div>
+        </div>
 
+        <Collapsible open={showCurrentPatterns} onOpenChange={setShowCurrentPatterns}>
           <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Ready to download with current ignore patterns?
-            </p>
-            <Button
-              onClick={handleDownload}
-              disabled={disabled || !repoUrl || downloadMutation.isPending}
-              className="gap-2"
-              size="lg"
-            >
-              {downloadMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              <Download className="h-4 w-4" />
-              {downloadMutation.isPending ? "Downloading..." : "Download Repository"}
-            </Button>
+            <h3 className="text-sm font-medium">Current Exclusion List</h3>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-9 p-0">
+                {showCurrentPatterns ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
           </div>
+          <CollapsibleContent className="mt-2">
+            {isLoading ? (
+              <div className="animate-pulse bg-muted h-24 rounded-md" />
+            ) : patterns?.current ? (
+              <div className="bg-muted p-3 rounded-md">
+                <pre className="whitespace-pre-wrap text-sm font-mono">
+                  {patterns.current.join("\n")}
+                </pre>
+              </div>
+            ) : null}
+          </CollapsibleContent>
+        </Collapsible>
+
+        <div className="flex items-center justify-between border-t pt-4">
+          <p className="text-sm text-muted-foreground">
+            Ready to download with current ignore patterns?
+          </p>
+          <Button
+            onClick={handleDownload}
+            disabled={disabled || !repoUrl || downloadMutation.isPending}
+            className="gap-2"
+            size="lg"
+          >
+            {downloadMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            <Download className="h-4 w-4" />
+            {downloadMutation.isPending ? "Downloading..." : "Download Repository"}
+          </Button>
         </div>
       </CardContent>
     </Card>

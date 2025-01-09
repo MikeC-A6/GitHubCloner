@@ -31,12 +31,23 @@ export async function analyzeGitHubRepo(url: string, directoryPath?: string) {
 
     const files = await getAllFiles(targetPath);
 
+    // Calculate total size and get file stats
+    let totalSize = 0;
+    for (const file of files) {
+      const stats = await fs.stat(path.join(targetPath, file));
+      totalSize += stats.size;
+    }
+
     // Clean up
     await fs.rm(tempDir, { recursive: true, force: true });
 
     return {
       files,
       suggestions: generateIgnoreSuggestions(files),
+      stats: {
+        fileCount: files.length,
+        totalSizeBytes: totalSize,
+      }
     };
   } catch (error: any) {
     // Ensure cleanup even if error occurs

@@ -5,6 +5,14 @@ import { useState } from "react";
 
 export default function Home() {
   const [analyzing, setAnalyzing] = useState(false);
+  const [repoStats, setRepoStats] = useState<{ fileCount: number; totalSizeBytes: number } | null>(null);
+
+  const formatBytes = (bytes: number): string => {
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    if (bytes === 0) return '0 B';
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
+  };
 
   return (
     <div className="min-h-screen w-full p-6 bg-background">
@@ -16,9 +24,25 @@ export default function Home() {
         <Card>
           <CardContent className="pt-6">
             <RepositoryForm 
-              onAnalyzeStart={() => setAnalyzing(true)}
-              onAnalyzeComplete={() => setAnalyzing(false)}
+              onAnalyzeStart={() => {
+                setAnalyzing(true);
+                setRepoStats(null);
+              }}
+              onAnalyzeComplete={(stats) => {
+                setAnalyzing(false);
+                if (stats) {
+                  setRepoStats(stats);
+                }
+              }}
             />
+            {repoStats && (
+              <div className="mt-4 p-4 bg-muted rounded-md">
+                <p className="text-sm text-muted-foreground">
+                  Repository contains {repoStats.fileCount} files
+                  {" "}({formatBytes(repoStats.totalSizeBytes)} total)
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 

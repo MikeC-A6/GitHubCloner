@@ -6,6 +6,10 @@ interface AnalyzeRequest {
 interface AnalyzeResponse {
   files: string[];
   suggestions: string[];
+  stats: {
+    fileCount: number;
+    totalSizeBytes: number;
+  };
 }
 
 interface PatternsResponse {

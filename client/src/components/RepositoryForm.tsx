@@ -9,7 +9,7 @@ import { FolderIcon, Github, Download } from "lucide-react";
 
 interface RepositoryFormProps {
   onAnalyzeStart: () => void;
-  onAnalyzeComplete: () => void;
+  onAnalyzeComplete: (data?: { fileCount: number; totalSizeBytes: number }) => void;
 }
 
 interface FormValues {
@@ -28,12 +28,12 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
 
   const analyzeMutation = useMutation({
     mutationFn: analyzeRepository,
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
         title: "Repository analyzed successfully",
         description: "You can now manage patterns below",
       });
-      onAnalyzeComplete();
+      onAnalyzeComplete(data.stats);
     },
     onError: (error) => {
       toast({
@@ -138,7 +138,7 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
             variant="outline"
             className="gap-2"
             onClick={handleDownload}
-            disabled={downloadMutation.isPending}
+            disabled={downloadMutation.isPending || analyzeMutation.isPending || !analyzeMutation.data}
           >
             <Download className="h-4 w-4" />
             {downloadMutation.isPending ? "Downloading..." : "Download"}

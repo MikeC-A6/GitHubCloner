@@ -5,6 +5,12 @@ import os from 'os';
 import { getPatterns } from './patterns.js';
 import { minimatch } from 'minimatch';
 
+interface FileTypeStats {
+  extension: string;
+  count: number;
+  totalBytes: number;
+}
+
 export async function analyzeGitHubRepo(url: string, directoryPath?: string) {
   // Validate GitHub URL
   if (!url.match(/^https:\/\/github\.com\/[\w-]+\/[\w-]+/)) {
@@ -46,12 +52,32 @@ export async function analyzeGitHubRepo(url: string, directoryPath?: string) {
       });
     });
 
-    // Calculate total size only for non-ignored files
+    // Calculate total size and collect file type statistics
     let totalSize = 0;
+    const typeStats = new Map<string, FileTypeStats>();
+
     for (const file of filteredFiles) {
       const stats = await fs.stat(path.join(targetPath, file));
       totalSize += stats.size;
+
+      // Get file extension (default to 'no extension' for files without one)
+      const ext = path.extname(file).toLowerCase() || 'no extension';
+
+      const currentStats = typeStats.get(ext) || { 
+        extension: ext, 
+        count: 0, 
+        totalBytes: 0 
+      };
+
+      currentStats.count++;
+      currentStats.totalBytes += stats.size;
+      typeStats.set(ext, currentStats);
     }
+
+    // Convert Map to array and sort by total size
+    const sortedTypeStats = Array.from(typeStats.values())
+      .sort((a, b) => b.totalBytes - a.totalBytes)
+      .slice(0, 5);
 
     // Clean up
     await fs.rm(tempDir, { recursive: true, force: true });
@@ -62,6 +88,7 @@ export async function analyzeGitHubRepo(url: string, directoryPath?: string) {
       stats: {
         fileCount: filteredFiles.length,
         totalSizeBytes: totalSize,
+        fileTypes: sortedTypeStats
       }
     };
   } catch (error: any) {

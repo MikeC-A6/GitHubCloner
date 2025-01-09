@@ -3,12 +3,19 @@ interface AnalyzeRequest {
   directoryPath?: string;
 }
 
+interface FileTypeStats {
+  extension: string;
+  count: number;
+  totalBytes: number;
+}
+
 interface AnalyzeResponse {
   files: string[];
   suggestions: string[];
   stats: {
     fileCount: number;
     totalSizeBytes: number;
+    fileTypes: FileTypeStats[];
   };
 }
 

@@ -68,17 +68,19 @@ export default function PatternManager({ disabled = false }: PatternManagerProps
     <Card>
       <CardHeader className="pb-3">
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-          <CollapsibleTrigger className="flex items-center justify-between w-full">
+          <div className="flex items-center justify-between w-full">
             <CardTitle>Current Ignore Patterns</CardTitle>
-            {isOpen ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
-          </CollapsibleTrigger>
+            <CollapsibleTrigger className="hover:bg-accent hover:text-accent-foreground rounded-md p-2">
+              {isOpen ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </CollapsibleTrigger>
+          </div>
 
           <CollapsibleContent>
-            <CardContent className="space-y-4">
+            <div className="pt-4">
               {isLoading ? (
                 <div className="animate-pulse bg-muted h-24 rounded-md" />
               ) : patterns?.current ? (
@@ -88,40 +90,42 @@ export default function PatternManager({ disabled = false }: PatternManagerProps
                   </pre>
                 </div>
               ) : null}
-
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium">Add Custom Patterns</h3>
-                <p className="text-sm text-muted-foreground">
-                  One pattern per line
-                </p>
-                <Textarea
-                  placeholder="*.custom&#10;custom_dir/"
-                  value={customPatterns}
-                  onChange={(e) => setCustomPatterns(e.target.value)}
-                  className="min-h-[100px]"
-                  disabled={disabled}
-                />
-              </div>
-
-              <div className="flex space-x-2">
-                <Button
-                  onClick={() => updateMutation.mutate(customPatterns)}
-                  disabled={disabled || !customPatterns || updateMutation.isPending}
-                >
-                  {updateMutation.isPending ? "Adding..." : "Add Patterns"}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => resetMutation.mutate()}
-                  disabled={disabled || resetMutation.isPending}
-                >
-                  {resetMutation.isPending ? "Resetting..." : "Reset to Defaults"}
-                </Button>
-              </div>
-            </CardContent>
+            </div>
           </CollapsibleContent>
         </Collapsible>
       </CardHeader>
+
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium">Add Custom Patterns</h3>
+          <p className="text-sm text-muted-foreground">
+            One pattern per line
+          </p>
+          <Textarea
+            placeholder="*.custom&#10;custom_dir/"
+            value={customPatterns}
+            onChange={(e) => setCustomPatterns(e.target.value)}
+            className="min-h-[100px]"
+            disabled={disabled}
+          />
+        </div>
+
+        <div className="flex space-x-2">
+          <Button
+            onClick={() => updateMutation.mutate(customPatterns)}
+            disabled={disabled || !customPatterns || updateMutation.isPending}
+          >
+            {updateMutation.isPending ? "Adding..." : "Add Patterns"}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => resetMutation.mutate()}
+            disabled={disabled || resetMutation.isPending}
+          >
+            {resetMutation.isPending ? "Resetting..." : "Reset to Defaults"}
+          </Button>
+        </div>
+      </CardContent>
     </Card>
   );
 }

@@ -28,6 +28,31 @@ export async function analyzeRepository(request: AnalyzeRequest): Promise<Analyz
   return response.json();
 }
 
+export async function downloadRepository(request: AnalyzeRequest): Promise<void> {
+  const response = await fetch("/api/download", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+
+  // Create a blob from the response and trigger download
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'repository-content.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}
+
 export async function updatePatterns(patterns: string): Promise<PatternsResponse> {
   const response = await fetch("/api/patterns", {
     method: "POST",

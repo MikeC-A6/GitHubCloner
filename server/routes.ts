@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { analyzeGitHubRepo } from "./services/github.js";
+import { analyzeGitHubRepo, downloadRepository } from "./services/github.js";
 import { getPatterns, updatePatterns, resetToDefaultPatterns } from "./services/patterns.js";
 
 export function registerRoutes(app: Express): Server {
@@ -9,6 +9,18 @@ export function registerRoutes(app: Express): Server {
       const { githubUrl, directoryPath } = req.body;
       const result = await analyzeGitHubRepo(githubUrl, directoryPath);
       res.json(result);
+    } catch (error: any) {
+      res.status(400).send(error.message);
+    }
+  });
+
+  app.post("/api/download", async (req, res) => {
+    try {
+      const { githubUrl, directoryPath } = req.body;
+      const content = await downloadRepository(githubUrl, directoryPath);
+      res.setHeader('Content-Type', 'text/plain');
+      res.setHeader('Content-Disposition', 'attachment; filename="repository-content.txt"');
+      res.send(content);
     } catch (error: any) {
       res.status(400).send(error.message);
     }

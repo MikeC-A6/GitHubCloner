@@ -3,9 +3,9 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
-import { analyzeRepository } from "@/lib/api";
+import { analyzeRepository, downloadRepository } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { FolderIcon, Github } from "lucide-react";
+import { FolderIcon, Github, Download } from "lucide-react";
 
 interface RepositoryFormProps {
   onAnalyzeStart: () => void;
@@ -45,9 +45,39 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
     },
   });
 
+  const downloadMutation = useMutation({
+    mutationFn: downloadRepository,
+    onSuccess: () => {
+      toast({
+        title: "Repository downloaded successfully",
+        description: "Check your downloads folder for the repository content",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to download repository",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const onSubmit = (values: FormValues) => {
     onAnalyzeStart();
     analyzeMutation.mutate(values);
+  };
+
+  const handleDownload = () => {
+    const values = form.getValues();
+    if (!values.githubUrl) {
+      toast({
+        title: "Repository URL required",
+        description: "Please enter a GitHub repository URL first",
+        variant: "destructive",
+      });
+      return;
+    }
+    downloadMutation.mutate(values);
   };
 
   return (
@@ -94,13 +124,26 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
           )}
         />
 
-        <Button 
-          type="submit" 
-          className="w-full"
-          disabled={analyzeMutation.isPending}
-        >
-          {analyzeMutation.isPending ? "Analyzing..." : "Analyze Repository"}
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            type="submit" 
+            className="flex-1"
+            disabled={analyzeMutation.isPending}
+          >
+            {analyzeMutation.isPending ? "Analyzing..." : "Analyze Repository"}
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="gap-2"
+            onClick={handleDownload}
+            disabled={downloadMutation.isPending}
+          >
+            <Download className="h-4 w-4" />
+            {downloadMutation.isPending ? "Downloading..." : "Download"}
+          </Button>
+        </div>
       </form>
     </Form>
   );

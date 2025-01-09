@@ -2,6 +2,8 @@ import { SimpleGit, simpleGit } from 'simple-git';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
+import { getPatterns } from './patterns.js';
+import { minimatch } from 'minimatch';
 
 export async function analyzeGitHubRepo(url: string, directoryPath?: string) {
   // Validate GitHub URL
@@ -40,6 +42,62 @@ export async function analyzeGitHubRepo(url: string, directoryPath?: string) {
     // Ensure cleanup even if error occurs
     await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
     throw new Error(`Failed to analyze repository: ${error.message}`);
+  }
+}
+
+export async function downloadRepository(url: string, directoryPath?: string) {
+  // Validate GitHub URL
+  if (!url.match(/^https:\/\/github\.com\/[\w-]+\/[\w-]+/)) {
+    throw new Error("Invalid GitHub repository URL");
+  }
+
+  // Create temp directory for cloning
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'repo-'));
+  const git: SimpleGit = simpleGit();
+
+  try {
+    // Clone repository
+    await git.clone(url, tempDir, ['--depth', '1']);
+
+    // Get repository contents
+    const targetPath = directoryPath ? path.join(tempDir, directoryPath) : tempDir;
+
+    // Verify directory exists
+    try {
+      await fs.access(targetPath);
+    } catch {
+      throw new Error("Specified directory path does not exist in the repository");
+    }
+
+    const files = await getAllFiles(targetPath);
+    const patterns = getPatterns();
+
+    // Filter files based on patterns
+    const filteredFiles = files.filter(file => 
+      !patterns.some(pattern => minimatch(file, pattern))
+    );
+
+    // Read content of each file
+    const contents = await Promise.all(
+      filteredFiles.map(async (file) => {
+        const filePath = path.join(targetPath, file);
+        try {
+          const content = await fs.readFile(filePath, 'utf-8');
+          return `File: ${file}\n${'='.repeat(file.length + 6)}\n${content}\n\n`;
+        } catch (error) {
+          return `File: ${file}\nError reading file: ${error}\n\n`;
+        }
+      })
+    );
+
+    // Clean up
+    await fs.rm(tempDir, { recursive: true, force: true });
+
+    return contents.join('\n');
+  } catch (error: any) {
+    // Ensure cleanup even if error occurs
+    await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+    throw new Error(`Failed to download repository: ${error.message}`);
   }
 }
 

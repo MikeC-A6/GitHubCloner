@@ -15,30 +15,10 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 
 interface PatternManagerProps {
   disabled?: boolean;
+  fileTypes?: Array<{ extension: string; count: number; totalBytes: number }>;
 }
 
-const COMMON_EXTENSIONS = [
-  "js", "ts", "jsx", "tsx",
-  "py", "pyc",
-  "java", "class",
-  "go",
-  "rb",
-  "php",
-  "css", "scss",
-  "html",
-  "json",
-  "yml", "yaml",
-  "md",
-  "sql",
-  "log",
-  "zip", "tar", "gz",
-  "pdf",
-  "doc", "docx",
-  "xls", "xlsx",
-  "env"
-];
-
-export default function PatternManager({ disabled = false }: PatternManagerProps) {
+export default function PatternManager({ disabled = false, fileTypes = [] }: PatternManagerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [customPatterns, setCustomPatterns] = useState("");
   const [selectedExtensions, setSelectedExtensions] = useState<string[]>([]);
@@ -140,41 +120,43 @@ export default function PatternManager({ disabled = false }: PatternManagerProps
       </CardHeader>
 
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium">Common File Extensions</h3>
-          <p className="text-sm text-muted-foreground">
-            Select file extensions to ignore (will be prefixed with "*.")
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-            {COMMON_EXTENSIONS.map((ext) => (
-              <div key={ext} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`ext-${ext}`}
-                  checked={selectedExtensions.includes(ext)}
-                  onCheckedChange={(checked) => 
-                    handleExtensionToggle(ext, checked === true)
-                  }
-                  disabled={disabled}
-                />
-                <label
-                  htmlFor={`ext-${ext}`}
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  .{ext}
-                </label>
-              </div>
-            ))}
+        {fileTypes.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium">Common File Types Found</h3>
+            <p className="text-sm text-muted-foreground">
+              Select file types to add to ignore patterns
+            </p>
+            <div className="space-y-2">
+              {fileTypes.slice(0, 5).map((type) => ( // Show only top 5
+                <div key={type.extension} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`ext-${type.extension}`}
+                    checked={selectedExtensions.includes(type.extension)}
+                    onCheckedChange={(checked) =>
+                      handleExtensionToggle(type.extension, checked === true)
+                    }
+                    disabled={disabled}
+                  />
+                  <label
+                    htmlFor={`ext-${type.extension}`}
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    .{type.extension} ({type.count} files, {formatBytes(type.totalBytes)})
+                  </label>
+                </div>
+              ))}
+            </div>
+            {selectedExtensions.length > 0 && (
+              <Button
+                onClick={handleAddExtensions}
+                disabled={disabled || updateMutation.isPending}
+                className="mt-2"
+              >
+                Add Selected Types to Ignore Patterns
+              </Button>
+            )}
           </div>
-          {selectedExtensions.length > 0 && (
-            <Button
-              onClick={handleAddExtensions}
-              disabled={disabled || updateMutation.isPending}
-              className="mt-2"
-            >
-              Add Selected Extensions
-            </Button>
-          )}
-        </div>
+        )}
 
         <div className="space-y-2">
           <h3 className="text-sm font-medium">Custom Patterns</h3>
@@ -208,4 +190,12 @@ export default function PatternManager({ disabled = false }: PatternManagerProps
       </CardContent>
     </Card>
   );
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }

@@ -33,7 +33,10 @@ export default function Home() {
           GitHub Repository to Text
         </h1>
 
-        <PatternManager disabled={analyzing} />
+        <PatternManager 
+          disabled={analyzing} 
+          fileTypes={repoStats?.fileTypes}
+        />
 
         <Card>
           <CardContent className="pt-6">

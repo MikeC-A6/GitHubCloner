@@ -141,7 +141,7 @@ export default function PatternManager({ disabled = false, fileTypes = [] }: Pat
                     htmlFor={`ext-${type.extension}`}
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                   >
-                    .{type.extension} ({type.count} files, {formatBytes(type.totalBytes)})
+                    {type.extension} ({type.count} files, {formatBytes(type.totalBytes)})
                   </label>
                 </div>
               ))}

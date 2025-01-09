@@ -17,7 +17,7 @@ interface PatternManagerProps {
 }
 
 export default function PatternManager({ disabled = false }: PatternManagerProps) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const [customPatterns, setCustomPatterns] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();

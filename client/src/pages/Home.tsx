@@ -30,7 +30,7 @@ export default function Home() {
     <div className="min-h-screen w-full p-6 bg-background">
       <div className="max-w-3xl mx-auto space-y-6">
         <h1 className="text-3xl font-bold text-center text-primary mb-8">
-          GitHub Repository Analyzer
+          GitHub Repository to Text
         </h1>
 
         <PatternManager disabled={analyzing} />

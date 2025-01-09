@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Collapsible,
   CollapsibleContent,
@@ -16,9 +17,31 @@ interface PatternManagerProps {
   disabled?: boolean;
 }
 
+const COMMON_EXTENSIONS = [
+  "js", "ts", "jsx", "tsx",
+  "py", "pyc",
+  "java", "class",
+  "go",
+  "rb",
+  "php",
+  "css", "scss",
+  "html",
+  "json",
+  "yml", "yaml",
+  "md",
+  "sql",
+  "log",
+  "zip", "tar", "gz",
+  "pdf",
+  "doc", "docx",
+  "xls", "xlsx",
+  "env"
+];
+
 export default function PatternManager({ disabled = false }: PatternManagerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [customPatterns, setCustomPatterns] = useState("");
+  const [selectedExtensions, setSelectedExtensions] = useState<string[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -50,6 +73,7 @@ export default function PatternManager({ disabled = false }: PatternManagerProps
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/patterns"] });
       setCustomPatterns("");
+      setSelectedExtensions([]);
       toast({
         title: "Patterns reset",
         description: "All patterns have been reset to defaults",
@@ -63,6 +87,26 @@ export default function PatternManager({ disabled = false }: PatternManagerProps
       });
     },
   });
+
+  const handleExtensionToggle = (extension: string, checked: boolean) => {
+    setSelectedExtensions(prev => {
+      if (checked) {
+        return [...prev, extension];
+      }
+      return prev.filter(ext => ext !== extension);
+    });
+  };
+
+  const handleAddExtensions = () => {
+    const extensionPatterns = selectedExtensions
+      .map(ext => `*.${ext}`)
+      .join('\n');
+    const newPatterns = customPatterns
+      ? `${customPatterns}\n${extensionPatterns}`
+      : extensionPatterns;
+    updateMutation.mutate(newPatterns);
+    setSelectedExtensions([]);
+  };
 
   return (
     <Card>
@@ -97,7 +141,43 @@ export default function PatternManager({ disabled = false }: PatternManagerProps
 
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <h3 className="text-sm font-medium">Add Custom Patterns</h3>
+          <h3 className="text-sm font-medium">Common File Extensions</h3>
+          <p className="text-sm text-muted-foreground">
+            Select file extensions to ignore (will be prefixed with "*.")
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+            {COMMON_EXTENSIONS.map((ext) => (
+              <div key={ext} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`ext-${ext}`}
+                  checked={selectedExtensions.includes(ext)}
+                  onCheckedChange={(checked) => 
+                    handleExtensionToggle(ext, checked === true)
+                  }
+                  disabled={disabled}
+                />
+                <label
+                  htmlFor={`ext-${ext}`}
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  .{ext}
+                </label>
+              </div>
+            ))}
+          </div>
+          {selectedExtensions.length > 0 && (
+            <Button
+              onClick={handleAddExtensions}
+              disabled={disabled || updateMutation.isPending}
+              className="mt-2"
+            >
+              Add Selected Extensions
+            </Button>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium">Custom Patterns</h3>
           <p className="text-sm text-muted-foreground">
             One pattern per line
           </p>
@@ -115,7 +195,7 @@ export default function PatternManager({ disabled = false }: PatternManagerProps
             onClick={() => updateMutation.mutate(customPatterns)}
             disabled={disabled || !customPatterns || updateMutation.isPending}
           >
-            {updateMutation.isPending ? "Adding..." : "Add Patterns"}
+            {updateMutation.isPending ? "Adding..." : "Add Custom Patterns"}
           </Button>
           <Button
             variant="outline"

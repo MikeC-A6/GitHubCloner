@@ -79,7 +79,11 @@ export default function PatternManager({ disabled = false, fileTypes = [] }: Pat
 
   const handleAddExtensions = () => {
     const extensionPatterns = selectedExtensions
-      .map(ext => `*.${ext}`)
+      .map(ext => {
+        // Remove the leading dot if it exists
+        const cleanExt = ext.startsWith('.') ? ext.substring(1) : ext;
+        return `*.${cleanExt}`;
+      })
       .join('\n');
     const newPatterns = customPatterns
       ? `${customPatterns}\n${extensionPatterns}`

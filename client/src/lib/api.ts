@@ -3,7 +3,16 @@ interface AnalyzeRequest {
   directoryPath?: string;
 }
 
-export async function analyzeRepository(request: AnalyzeRequest) {
+interface AnalyzeResponse {
+  files: string[];
+  suggestions: string[];
+}
+
+interface PatternsResponse {
+  current: string[];
+}
+
+export async function analyzeRepository(request: AnalyzeRequest): Promise<AnalyzeResponse> {
   const response = await fetch("/api/analyze", {
     method: "POST",
     headers: {
@@ -19,7 +28,7 @@ export async function analyzeRepository(request: AnalyzeRequest) {
   return response.json();
 }
 
-export async function updatePatterns(patterns: string) {
+export async function updatePatterns(patterns: string): Promise<PatternsResponse> {
   const response = await fetch("/api/patterns", {
     method: "POST",
     headers: {
@@ -35,7 +44,7 @@ export async function updatePatterns(patterns: string) {
   return response.json();
 }
 
-export async function resetPatterns() {
+export async function resetPatterns(): Promise<PatternsResponse> {
   const response = await fetch("/api/patterns/reset", {
     method: "POST",
   });
@@ -47,7 +56,7 @@ export async function resetPatterns() {
   return response.json();
 }
 
-export async function getPatterns() {
+export async function getPatterns(): Promise<PatternsResponse> {
   const response = await fetch("/api/patterns");
   if (!response.ok) {
     throw new Error(await response.text());

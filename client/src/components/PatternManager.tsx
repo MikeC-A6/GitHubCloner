@@ -22,8 +22,9 @@ export default function PatternManager({ disabled = false }: PatternManagerProps
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: patterns } = useQuery({
+  const { data: patterns, isLoading } = useQuery({
     queryKey: ["/api/patterns"],
+    queryFn: getPatterns,
   });
 
   const updateMutation = useMutation({
@@ -33,6 +34,13 @@ export default function PatternManager({ disabled = false }: PatternManagerProps
       toast({
         title: "Patterns updated",
         description: "Your custom patterns have been added",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update patterns",
+        description: error.message,
+        variant: "destructive",
       });
     },
   });
@@ -45,6 +53,13 @@ export default function PatternManager({ disabled = false }: PatternManagerProps
       toast({
         title: "Patterns reset",
         description: "All patterns have been reset to defaults",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to reset patterns",
+        description: error.message,
+        variant: "destructive",
       });
     },
   });
@@ -64,13 +79,15 @@ export default function PatternManager({ disabled = false }: PatternManagerProps
 
           <CollapsibleContent>
             <CardContent className="space-y-4">
-              {patterns?.current && (
+              {isLoading ? (
+                <div className="animate-pulse bg-muted h-24 rounded-md" />
+              ) : patterns?.current ? (
                 <div className="bg-muted p-3 rounded-md">
                   <pre className="whitespace-pre-wrap text-sm">
                     {patterns.current.join("\n")}
                   </pre>
                 </div>
-              )}
+              ) : null}
 
               <div className="space-y-2">
                 <h3 className="text-sm font-medium">Add Custom Patterns</h3>
@@ -89,16 +106,16 @@ export default function PatternManager({ disabled = false }: PatternManagerProps
               <div className="flex space-x-2">
                 <Button
                   onClick={() => updateMutation.mutate(customPatterns)}
-                  disabled={disabled || !customPatterns}
+                  disabled={disabled || !customPatterns || updateMutation.isPending}
                 >
-                  Add Patterns
+                  {updateMutation.isPending ? "Adding..." : "Add Patterns"}
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => resetMutation.mutate()}
-                  disabled={disabled}
+                  disabled={disabled || resetMutation.isPending}
                 >
-                  Reset to Defaults
+                  {resetMutation.isPending ? "Resetting..." : "Reset to Defaults"}
                 </Button>
               </div>
             </CardContent>

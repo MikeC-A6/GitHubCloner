@@ -29,11 +29,26 @@ export async function analyzeGitHubRepo(url: string, directoryPath?: string) {
       throw new Error("Specified directory path does not exist in the repository");
     }
 
-    const files = await getAllFiles(targetPath);
+    const allFiles = await getAllFiles(targetPath);
+    const patterns = getPatterns();
 
-    // Calculate total size and get file stats
+    // Filter files using the same logic as download
+    const filteredFiles = allFiles.filter(file => {
+      const normalizedFile = file.replace(/\\/g, '/');
+      return !patterns.some(pattern => {
+        const matchOptions = {
+          dot: true,
+          matchBase: !pattern.includes('/'),
+          nocase: true,
+        };
+        const processedPattern = pattern.endsWith('/') ? pattern + '**' : pattern;
+        return minimatch(normalizedFile, processedPattern, matchOptions);
+      });
+    });
+
+    // Calculate total size only for non-ignored files
     let totalSize = 0;
-    for (const file of files) {
+    for (const file of filteredFiles) {
       const stats = await fs.stat(path.join(targetPath, file));
       totalSize += stats.size;
     }
@@ -42,10 +57,10 @@ export async function analyzeGitHubRepo(url: string, directoryPath?: string) {
     await fs.rm(tempDir, { recursive: true, force: true });
 
     return {
-      files,
-      suggestions: generateIgnoreSuggestions(files),
+      files: filteredFiles,
+      suggestions: generateIgnoreSuggestions(filteredFiles),
       stats: {
-        fileCount: files.length,
+        fileCount: filteredFiles.length,
         totalSizeBytes: totalSize,
       }
     };

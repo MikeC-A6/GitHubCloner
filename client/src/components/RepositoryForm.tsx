@@ -5,7 +5,9 @@ import { useForm } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
 import { analyzeRepository, downloadRepository } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { FolderIcon, Github, Download } from "lucide-react";
+import { FolderIcon, Github, Download, Loader2 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { useState } from "react";
 
 interface RepositoryFormProps {
   onAnalyzeStart: () => void;
@@ -19,6 +21,9 @@ interface FormValues {
 
 export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: RepositoryFormProps) {
   const { toast } = useToast();
+  const [analyzeProgress, setAnalyzeProgress] = useState(0);
+  const [analyzeStage, setAnalyzeStage] = useState<string>("");
+
   const form = useForm<FormValues>({
     defaultValues: {
       githubUrl: "",
@@ -28,14 +33,39 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
 
   const analyzeMutation = useMutation({
     mutationFn: analyzeRepository,
+    onMutate: () => {
+      setAnalyzeProgress(10);
+      setAnalyzeStage("Initializing repository analysis...");
+      setTimeout(() => {
+        setAnalyzeProgress(30);
+        setAnalyzeStage("Cloning repository...");
+      }, 500);
+      setTimeout(() => {
+        setAnalyzeProgress(60);
+        setAnalyzeStage("Analyzing files...");
+      }, 1500);
+      setTimeout(() => {
+        setAnalyzeProgress(90);
+        setAnalyzeStage("Calculating statistics...");
+      }, 2500);
+    },
     onSuccess: (data) => {
+      setAnalyzeProgress(100);
+      setAnalyzeStage("Analysis complete!");
       toast({
         title: "Repository analyzed successfully",
         description: "You can now manage patterns below",
       });
       onAnalyzeComplete(data.stats);
+      // Reset progress after a brief delay
+      setTimeout(() => {
+        setAnalyzeProgress(0);
+        setAnalyzeStage("");
+      }, 1000);
     },
     onError: (error) => {
+      setAnalyzeProgress(0);
+      setAnalyzeStage("");
       toast({
         title: "Failed to analyze repository",
         description: error.message,
@@ -124,13 +154,21 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
           )}
         />
 
+        {analyzeProgress > 0 && (
+          <div className="space-y-2">
+            <Progress value={analyzeProgress} className="w-full" />
+            <p className="text-sm text-muted-foreground">{analyzeStage}</p>
+          </div>
+        )}
+
         <div className="flex gap-2">
           <Button 
             type="submit" 
-            className="flex-1"
+            className="flex-1 gap-2"
             disabled={analyzeMutation.isPending}
           >
-            {analyzeMutation.isPending ? "Analyzing..." : "Clone and Analyze Repository"}
+            {analyzeMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            {analyzeMutation.isPending ? "Analyzing Repository..." : "Clone and Analyze Repository"}
           </Button>
 
           <Button
@@ -140,6 +178,7 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
             onClick={handleDownload}
             disabled={downloadMutation.isPending || analyzeMutation.isPending || !analyzeMutation.data}
           >
+            {downloadMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
             <Download className="h-4 w-4" />
             {downloadMutation.isPending ? "Downloading..." : "Download"}
           </Button>

@@ -3,15 +3,15 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
-import { analyzeRepository, downloadRepository } from "@/lib/api";
+import { analyzeRepository } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { FolderIcon, Github, Download, Loader2 } from "lucide-react";
+import { FolderIcon, Github, Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useState } from "react";
 
 interface RepositoryFormProps {
   onAnalyzeStart: () => void;
-  onAnalyzeComplete: (data?: { fileCount: number; totalSizeBytes: number }) => void;
+  onAnalyzeComplete: (stats?: { fileCount: number; totalSizeBytes: number; fileTypes: any[] }, repoUrl?: string, directoryPath?: string) => void;
 }
 
 interface FormValues {
@@ -56,7 +56,8 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
         title: "Repository analyzed successfully",
         description: "You can now manage patterns below",
       });
-      onAnalyzeComplete(data.stats);
+      const values = form.getValues();
+      onAnalyzeComplete(data.stats, values.githubUrl, values.directoryPath);
       // Reset progress after a brief delay
       setTimeout(() => {
         setAnalyzeProgress(0);
@@ -75,39 +76,9 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
     },
   });
 
-  const downloadMutation = useMutation({
-    mutationFn: downloadRepository,
-    onSuccess: () => {
-      toast({
-        title: "Repository downloaded successfully",
-        description: "Check your downloads folder for the repository content",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Failed to download repository",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
   const onSubmit = (values: FormValues) => {
     onAnalyzeStart();
     analyzeMutation.mutate(values);
-  };
-
-  const handleDownload = () => {
-    const values = form.getValues();
-    if (!values.githubUrl) {
-      toast({
-        title: "Repository URL required",
-        description: "Please enter a GitHub repository URL first",
-        variant: "destructive",
-      });
-      return;
-    }
-    downloadMutation.mutate(values);
   };
 
   return (
@@ -161,28 +132,14 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
           </div>
         )}
 
-        <div className="flex gap-2">
-          <Button 
-            type="submit" 
-            className="flex-1 gap-2"
-            disabled={analyzeMutation.isPending}
-          >
-            {analyzeMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-            {analyzeMutation.isPending ? "Analyzing Repository..." : "Clone and Analyze Repository"}
-          </Button>
-
-          <Button
-            type="button"
-            variant="outline"
-            className="gap-2"
-            onClick={handleDownload}
-            disabled={downloadMutation.isPending || analyzeMutation.isPending || !analyzeMutation.data}
-          >
-            {downloadMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-            <Download className="h-4 w-4" />
-            {downloadMutation.isPending ? "Downloading..." : "Download"}
-          </Button>
-        </div>
+        <Button 
+          type="submit" 
+          className="w-full gap-2"
+          disabled={analyzeMutation.isPending}
+        >
+          {analyzeMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+          {analyzeMutation.isPending ? "Analyzing Repository..." : "Clone and Analyze Repository"}
+        </Button>
       </form>
     </Form>
   );

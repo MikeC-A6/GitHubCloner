@@ -83,16 +83,21 @@ export async function downloadRepository(url: string, directoryPath?: string) {
     const files = await getAllFiles(targetPath);
     const patterns = getPatterns();
 
-    // Filter files based on patterns with proper options for directory matching
+    // Enhanced file filtering with proper pattern matching
     const filteredFiles = files.filter(file => {
-      // Check each pattern
+      const normalizedFile = file.replace(/\\/g, '/'); // Normalize path separators
       return !patterns.some(pattern => {
-        // Use proper minimatch options for directory patterns
+        // Handle directory patterns with proper matching options
         const matchOptions = {
           dot: true, // Match dotfiles
-          matchBase: !pattern.includes('/'), // Match basename for patterns without slashes
+          matchBase: !pattern.includes('/'), // Match basename only for patterns without paths
+          nocase: true, // Case insensitive matching
         };
-        return minimatch(file, pattern, matchOptions);
+
+        // Add /** to directory patterns that don't have it
+        const processedPattern = pattern.endsWith('/') ? pattern + '**' : pattern;
+
+        return minimatch(normalizedFile, processedPattern, matchOptions);
       });
     });
 

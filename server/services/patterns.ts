@@ -1,4 +1,9 @@
 const DEFAULT_PATTERNS = [
+  // Git
+  ".git/**", 
+  ".gitignore",
+  ".gitattributes",
+  ".gitmodules",
   // Python
   "*.pyc",
   "*.pyo",
@@ -14,7 +19,7 @@ const DEFAULT_PATTERNS = [
   "poetry.lock",
   "Pipfile.lock",
   // JavaScript/Node
-  "node_modules",
+  "node_modules/**", 
   "bower_components",
   "package-lock.json",
   "yarn.lock",
@@ -82,12 +87,8 @@ const DEFAULT_PATTERNS = [
   "packages/",
   "*.nupkg",
   // Version control
-  ".git",
   ".svn",
   ".hg",
-  ".gitignore",
-  ".gitattributes",
-  ".gitmodules",
   // Images and media
   "*.svg",
   "*.png",
@@ -167,7 +168,15 @@ export function updatePatterns(newPatterns: string): string[] {
     .map(p => p.trim())
     .filter(p => p && !p.startsWith("#"));
 
-  currentPatterns = Array.from(new Set([...currentPatterns, ...patterns]));
+  // Ensure directory patterns end with /** if they don't have a wildcard
+  const processedPatterns = patterns.map(pattern => {
+    if (pattern.endsWith('/') && !pattern.includes('*')) {
+      return pattern + '**';
+    }
+    return pattern;
+  });
+
+  currentPatterns = Array.from(new Set([...currentPatterns, ...processedPatterns]));
   return currentPatterns;
 }
 

@@ -10,15 +10,18 @@ import {
 } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getPatterns, updatePatterns, resetPatterns } from "@/lib/api";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { getPatterns, updatePatterns, resetPatterns, downloadRepository } from "@/lib/api";
+import { ChevronDown, ChevronUp, Download, Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface PatternManagerProps {
   disabled?: boolean;
   fileTypes?: Array<{ extension: string; count: number; totalBytes: number }>;
+  repoUrl?: string;
+  directoryPath?: string;
 }
 
-export default function PatternManager({ disabled = false, fileTypes = [] }: PatternManagerProps) {
+export default function PatternManager({ disabled = false, fileTypes = [], repoUrl, directoryPath }: PatternManagerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [customPatterns, setCustomPatterns] = useState("");
   const [selectedExtensions, setSelectedExtensions] = useState<string[]>([]);
@@ -68,6 +71,23 @@ export default function PatternManager({ disabled = false, fileTypes = [] }: Pat
     },
   });
 
+  const downloadMutation = useMutation({
+    mutationFn: downloadRepository,
+    onSuccess: () => {
+      toast({
+        title: "Repository downloaded successfully",
+        description: "Check your downloads folder for the repository content",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to download repository",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleExtensionToggle = (extension: string, checked: boolean) => {
     setSelectedExtensions(prev => {
       if (checked) {
@@ -80,7 +100,6 @@ export default function PatternManager({ disabled = false, fileTypes = [] }: Pat
   const handleAddExtensions = () => {
     const extensionPatterns = selectedExtensions
       .map(ext => {
-        // Remove the leading dot if it exists
         const cleanExt = ext.startsWith('.') ? ext.substring(1) : ext;
         return `*.${cleanExt}`;
       })
@@ -92,12 +111,20 @@ export default function PatternManager({ disabled = false, fileTypes = [] }: Pat
     setSelectedExtensions([]);
   };
 
+  const handleDownload = () => {
+    if (!repoUrl) return;
+    downloadMutation.mutate({
+      githubUrl: repoUrl,
+      directoryPath,
+    });
+  };
+
   return (
     <Card>
       <CardHeader className="pb-3">
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
           <div className="flex items-center justify-between w-full">
-            <CardTitle>Current Ignore Patterns</CardTitle>
+            <CardTitle>Customize Repository Content</CardTitle>
             <CollapsibleTrigger className="hover:bg-accent hover:text-accent-foreground rounded-md p-2">
               {isOpen ? (
                 <ChevronUp className="h-4 w-4" />
@@ -124,14 +151,20 @@ export default function PatternManager({ disabled = false, fileTypes = [] }: Pat
       </CardHeader>
 
       <CardContent className="space-y-4">
+        <Alert>
+          <AlertDescription>
+            Customize which files to exclude before downloading. This helps reduce the repository size and remove unnecessary files.
+          </AlertDescription>
+        </Alert>
+
         {fileTypes.length > 0 && (
           <div className="space-y-2">
             <h3 className="text-sm font-medium">Common File Types Found</h3>
             <p className="text-sm text-muted-foreground">
-              Select file types to add to ignore patterns
+              Select file types to exclude from download
             </p>
             <div className="space-y-2">
-              {fileTypes.slice(0, 5).map((type) => ( // Show only top 5
+              {fileTypes.slice(0, 5).map((type) => (
                 <div key={type.extension} className="flex items-center space-x-2">
                   <Checkbox
                     id={`ext-${type.extension}`}
@@ -165,7 +198,7 @@ export default function PatternManager({ disabled = false, fileTypes = [] }: Pat
         <div className="space-y-2">
           <h3 className="text-sm font-medium">Custom Patterns</h3>
           <p className="text-sm text-muted-foreground">
-            One pattern per line
+            One pattern per line (e.g., *.log, build/)
           </p>
           <Textarea
             placeholder="*.custom&#10;custom_dir/"
@@ -176,20 +209,38 @@ export default function PatternManager({ disabled = false, fileTypes = [] }: Pat
           />
         </div>
 
-        <div className="flex space-x-2">
-          <Button
-            onClick={() => updateMutation.mutate(customPatterns)}
-            disabled={disabled || !customPatterns || updateMutation.isPending}
-          >
-            {updateMutation.isPending ? "Adding..." : "Add Custom Patterns"}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => resetMutation.mutate()}
-            disabled={disabled || resetMutation.isPending}
-          >
-            {resetMutation.isPending ? "Resetting..." : "Reset to Defaults"}
-          </Button>
+        <div className="flex flex-col gap-4 pt-4 border-t">
+          <div className="flex space-x-2">
+            <Button
+              onClick={() => updateMutation.mutate(customPatterns)}
+              disabled={disabled || !customPatterns || updateMutation.isPending}
+            >
+              {updateMutation.isPending ? "Adding..." : "Add Custom Patterns"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => resetMutation.mutate()}
+              disabled={disabled || resetMutation.isPending}
+            >
+              {resetMutation.isPending ? "Resetting..." : "Reset to Defaults"}
+            </Button>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Ready to download with current ignore patterns?
+            </p>
+            <Button
+              onClick={handleDownload}
+              disabled={disabled || !repoUrl || downloadMutation.isPending}
+              className="gap-2"
+              size="lg"
+            >
+              {downloadMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              <Download className="h-4 w-4" />
+              {downloadMutation.isPending ? "Downloading..." : "Download Repository"}
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>

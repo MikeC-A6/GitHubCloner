@@ -1,12 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import RepositoryForm from "@/components/RepositoryForm";
 import PatternManager from "@/components/PatternManager";
-import { Button } from "@/components/ui/button";
-import { Download, Loader2 } from "lucide-react";
 import { useState } from "react";
-import { downloadRepository } from "@/lib/api";
-import { useToast } from "@/hooks/use-toast";
-import { useMutation } from "@tanstack/react-query";
 
 interface FileTypeStats {
   extension: string;
@@ -27,40 +22,14 @@ interface AnalysisData {
 }
 
 export default function Home() {
-  const { toast } = useToast();
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
-
-  const downloadMutation = useMutation({
-    mutationFn: downloadRepository,
-    onSuccess: () => {
-      toast({
-        title: "Repository downloaded successfully",
-        description: "Check your downloads folder for the repository content",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Failed to download repository",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
 
   const formatBytes = (bytes: number): string => {
     const sizes = ['B', 'KB', 'MB', 'GB'];
     if (bytes === 0) return '0 B';
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
     return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
-  };
-
-  const handleDownload = () => {
-    if (!analysisData) return;
-    downloadMutation.mutate({
-      githubUrl: analysisData.repoUrl,
-      directoryPath: analysisData.directoryPath,
-    });
   };
 
   return (
@@ -79,7 +48,7 @@ export default function Home() {
               }}
               onAnalyzeComplete={(stats, repoUrl, directoryPath) => {
                 setAnalyzing(false);
-                if (stats) {
+                if (stats && repoUrl) {
                   setAnalysisData({ stats, repoUrl, directoryPath });
                 }
               }}
@@ -89,7 +58,7 @@ export default function Home() {
 
         {analysisData && (
           <Card>
-            <CardContent className="pt-6 space-y-4">
+            <CardContent className="pt-6">
               <div>
                 <h2 className="text-lg font-semibold mb-2">Analysis Results</h2>
                 <div className="bg-muted p-4 rounded-md">
@@ -99,23 +68,6 @@ export default function Home() {
                   </p>
                 </div>
               </div>
-
-              <div className="flex items-center justify-between border-t pt-4">
-                <div className="text-sm text-muted-foreground">
-                  Ready to download the repository content?
-                </div>
-                <Button
-                  onClick={handleDownload}
-                  disabled={downloadMutation.isPending}
-                  className="gap-2"
-                >
-                  {downloadMutation.isPending && (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  )}
-                  <Download className="h-4 w-4" />
-                  {downloadMutation.isPending ? "Downloading..." : "Download Content"}
-                </Button>
-              </div>
             </CardContent>
           </Card>
         )}
@@ -123,6 +75,8 @@ export default function Home() {
         <PatternManager 
           disabled={analyzing} 
           fileTypes={analysisData?.stats.fileTypes}
+          repoUrl={analysisData?.repoUrl}
+          directoryPath={analysisData?.directoryPath}
         />
       </div>
     </div>

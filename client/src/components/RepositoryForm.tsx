@@ -130,7 +130,7 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
             className="flex-1"
             disabled={analyzeMutation.isPending}
           >
-            {analyzeMutation.isPending ? "Analyzing..." : "Close and Analyze Repository"}
+            {analyzeMutation.isPending ? "Analyzing..." : "Clone and Analyze Repository"}
           </Button>
 
           <Button

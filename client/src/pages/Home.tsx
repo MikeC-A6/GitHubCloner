@@ -50,39 +50,24 @@ export default function Home() {
           </CardContent>
         </Card>
 
-        <PatternManager 
-          disabled={analyzing} 
-          fileTypes={repoStats?.fileTypes}
-        />
-
         {repoStats && (
           <Card>
             <CardContent className="pt-6">
               <h2 className="text-lg font-semibold mb-2">Analysis Results</h2>
-              <div className="space-y-4">
-                <div className="bg-muted p-4 rounded-md">
-                  <p className="text-sm text-muted-foreground">
-                    Repository contains {repoStats.fileCount} files
-                    {" "}({formatBytes(repoStats.totalSizeBytes)} total)
-                  </p>
-                </div>
-
-                {repoStats.fileTypes.length > 0 && (
-                  <div className="bg-muted p-4 rounded-md">
-                    <h3 className="text-sm font-medium mb-2">Top 5 File Types by Size</h3>
-                    <ul className="space-y-2">
-                      {repoStats.fileTypes.map((type) => (
-                        <li key={type.extension} className="text-sm text-muted-foreground">
-                          {type.extension}: {type.count} files ({formatBytes(type.totalBytes)})
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+              <div className="bg-muted p-4 rounded-md">
+                <p className="text-sm text-muted-foreground">
+                  Repository contains {repoStats.fileCount} files
+                  {" "}({formatBytes(repoStats.totalSizeBytes)} total)
+                </p>
               </div>
             </CardContent>
           </Card>
         )}
+
+        <PatternManager 
+          disabled={analyzing} 
+          fileTypes={repoStats?.fileTypes}
+        />
       </div>
     </div>
   );

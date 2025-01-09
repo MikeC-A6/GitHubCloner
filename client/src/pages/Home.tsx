@@ -21,6 +21,8 @@ export default function Home() {
           GitHub Repository Analyzer
         </h1>
 
+        <PatternManager disabled={analyzing} />
+
         <Card>
           <CardContent className="pt-6">
             <RepositoryForm 
@@ -35,18 +37,22 @@ export default function Home() {
                 }
               }}
             />
-            {repoStats && (
-              <div className="mt-4 p-4 bg-muted rounded-md">
+          </CardContent>
+        </Card>
+
+        {repoStats && (
+          <Card>
+            <CardContent className="pt-6">
+              <h2 className="text-lg font-semibold mb-2">Analysis Results</h2>
+              <div className="bg-muted p-4 rounded-md">
                 <p className="text-sm text-muted-foreground">
                   Repository contains {repoStats.fileCount} files
                   {" "}({formatBytes(repoStats.totalSizeBytes)} total)
                 </p>
               </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <PatternManager disabled={analyzing} />
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormDescription } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
 import { analyzeRepository } from "@/lib/api";
@@ -54,11 +54,10 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
       setAnalyzeStage("Analysis complete!");
       toast({
         title: "Repository analyzed successfully",
-        description: "You can now manage patterns below",
+        description: "You can now customize and download the repository content",
       });
       const values = form.getValues();
       onAnalyzeComplete(data.stats, values.githubUrl, values.directoryPath);
-      // Reset progress after a brief delay
       setTimeout(() => {
         setAnalyzeProgress(0);
         setAnalyzeStage("");
@@ -83,17 +82,22 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
           control={form.control}
           name="githubUrl"
           rules={{ required: "GitHub URL is required" }}
           render={({ field }) => (
             <FormItem>
-              <FormLabel>GitHub URL</FormLabel>
+              <FormLabel>Repository URL</FormLabel>
+              <FormDescription>
+                Enter the full URL of the GitHub repository you want to analyze
+              </FormDescription>
               <FormControl>
                 <div className="relative">
-                  <Github className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <Github className="w-5 h-5 text-muted-foreground/70" />
+                  </div>
                   <Input 
                     placeholder="https://github.com/username/repository"
                     className="pl-10"
@@ -110,12 +114,17 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
           name="directoryPath"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Directory Path (Optional)</FormLabel>
+              <FormLabel>Directory Path</FormLabel>
+              <FormDescription>
+                Optionally specify a subdirectory to analyze. Leave empty to process the entire repository
+              </FormDescription>
               <FormControl>
                 <div className="relative">
-                  <FolderIcon className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <FolderIcon className="w-5 h-5 text-muted-foreground/70" />
+                  </div>
                   <Input 
-                    placeholder="Leave empty for entire repository"
+                    placeholder="e.g., src/components"
                     className="pl-10"
                     {...field}
                   />
@@ -126,19 +135,23 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
         />
 
         {analyzeProgress > 0 && (
-          <div className="space-y-2">
-            <Progress value={analyzeProgress} className="w-full" />
-            <p className="text-sm text-muted-foreground">{analyzeStage}</p>
+          <div className="space-y-3 bg-muted/30 p-4 rounded-lg">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">{analyzeStage}</span>
+              <span className="font-medium">{analyzeProgress}%</span>
+            </div>
+            <Progress value={analyzeProgress} className="h-2" />
           </div>
         )}
 
         <Button 
           type="submit" 
           className="w-full gap-2"
+          size="lg"
           disabled={analyzeMutation.isPending}
         >
-          {analyzeMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-          {analyzeMutation.isPending ? "Analyzing Repository..." : "Clone and Analyze Repository"}
+          {analyzeMutation.isPending && <Loader2 className="w-5 h-5 animate-spin" />}
+          {analyzeMutation.isPending ? "Analyzing Repository..." : "Analyze Repository"}
         </Button>
       </form>
     </Form>

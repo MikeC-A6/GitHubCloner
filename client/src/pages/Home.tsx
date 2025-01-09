@@ -1,7 +1,8 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import RepositoryForm from "@/components/RepositoryForm";
 import PatternManager from "@/components/PatternManager";
 import { useState } from "react";
+import { Github } from "lucide-react";
 
 interface FileTypeStats {
   extension: string;
@@ -33,14 +34,21 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen w-full p-6 bg-background">
-      <div className="max-w-3xl mx-auto space-y-6">
-        <h1 className="text-3xl font-bold text-center text-primary mb-8">
-          GitHub Repository to Text
-        </h1>
+    <div className="min-h-screen w-full bg-gradient-to-b from-background to-muted/20">
+      <div className="max-w-3xl mx-auto p-6 space-y-8">
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-4 bg-muted/80 text-foreground px-8 py-4 rounded-xl text-3xl font-bold w-full">
+            <Github className="w-8 h-8" />
+            <span>Convert GitHub Code to Text</span>
+          </div>
+        </div>
 
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="border-2">
+          <CardHeader>
+            <CardTitle>Repository Details</CardTitle>
+            <CardDescription>Enter the GitHub repository URL and optional directory path to analyze</CardDescription>
+          </CardHeader>
+          <CardContent>
             <RepositoryForm 
               onAnalyzeStart={() => {
                 setAnalyzing(true);
@@ -58,14 +66,19 @@ export default function Home() {
 
         {analysisData && (
           <Card>
-            <CardContent className="pt-6">
-              <div>
-                <h2 className="text-lg font-semibold mb-2">Analysis Results</h2>
-                <div className="bg-muted p-4 rounded-md">
-                  <p className="text-sm text-muted-foreground">
-                    Repository contains {analysisData.stats.fileCount} files
-                    {" "}({formatBytes(analysisData.stats.totalSizeBytes)} total)
-                  </p>
+            <CardHeader>
+              <CardTitle>Analysis Results</CardTitle>
+              <CardDescription>Overview of repository contents and file statistics</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="bg-muted/50 p-4 rounded-lg">
+                  <div className="text-2xl font-bold">{analysisData.stats.fileCount}</div>
+                  <div className="text-sm text-muted-foreground">Total Files</div>
+                </div>
+                <div className="bg-muted/50 p-4 rounded-lg">
+                  <div className="text-2xl font-bold">{formatBytes(analysisData.stats.totalSizeBytes)}</div>
+                  <div className="text-sm text-muted-foreground">Total Size</div>
                 </div>
               </div>
             </CardContent>

@@ -1,6 +1,7 @@
 interface AnalyzeRequest {
   githubUrl: string;
   directoryPath?: string;
+  patterns?: string;
 }
 
 interface FileTypeStats {

@@ -1,3 +1,4 @@
+// Types for requests and responses
 interface AnalyzeRequest {
   githubUrl: string;
   directoryPath?: string;
@@ -53,12 +54,22 @@ export async function downloadRepository(request: AnalyzeRequest): Promise<void>
     throw new Error(await response.text());
   }
 
+  // Get the filename from the Content-Disposition header, fallback to a default if not present
+  const contentDisposition = response.headers.get('Content-Disposition');
+  let filename = 'repository-content.txt';
+  if (contentDisposition) {
+    const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
+    if (matches != null && matches[1]) {
+      filename = matches[1].replace(/['"]/g, '');
+    }
+  }
+
   // Create a blob from the response and trigger download
   const blob = await response.blob();
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'repository-content.txt';
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

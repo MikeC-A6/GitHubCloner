@@ -26,22 +26,13 @@ export function registerRoutes(app: Express): Server {
       if (!githubUrl) {
         return res.status(400).json({ message: "GitHub URL is required" });
       }
-      const content = await downloadRepository(githubUrl, directoryPath);
 
-      // Extract repository name and context from GitHub URL
-      const repoName = githubUrl.split('/').pop()?.replace('.git', '') || 'repository';
-      const context = directoryPath ? 
-        directoryPath.toLowerCase().replace(/[^a-z0-9]/g, '-') : 
-        'root';
-
-      // Generate standardized filename
-      const date = new Date().toISOString().split('T')[0].replace(/-/g, '');
-      const filename = `${repoName}-${context}_source_repository_${date}.txt`;
+      const result = await downloadRepository(githubUrl, directoryPath);
 
       // Set proper headers for text file download
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      res.send(content);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+      res.send(result.content);
     } catch (error: any) {
       console.error('Error downloading repository:', error);
       const statusCode = error.status || error.statusCode || 500;

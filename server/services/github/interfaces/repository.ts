@@ -23,7 +23,7 @@ export interface IRepositoryAnalyzer {
 }
 
 export interface IRepositoryDownloader {
-  downloadRepository(url: string, directoryPath?: string): Promise<string>;
+  downloadRepository(url: string, directoryPath?: string): Promise<{ content: string, filename: string }>;
 }
 
 export interface IGitHubService extends IRepositoryAnalyzer, IRepositoryDownloader {}

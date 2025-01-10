@@ -35,7 +35,7 @@ export class GitHubService implements IGitHubService {
     return this.repositoryAnalyzer.analyzeRepository(url, directoryPath);
   }
 
-  async downloadRepository(url: string, directoryPath?: string): Promise<string> {
+  async downloadRepository(url: string, directoryPath?: string): Promise<{ content: string, filename: string }> {
     return this.repositoryDownloader.downloadRepository(url, directoryPath);
   }
 }

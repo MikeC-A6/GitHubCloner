@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
 import {
   Collapsible,
   CollapsibleContent,
@@ -11,9 +12,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getPatterns, updatePatterns, resetPatterns, downloadRepository } from "@/lib/api";
-import { ChevronDown, ChevronUp, Download, Loader2, FileIcon } from "lucide-react";
+import { ChevronDown, ChevronUp, Download, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 
 interface PatternManagerProps {
   disabled?: boolean;
@@ -26,6 +26,7 @@ export default function PatternManager({ disabled = false, fileTypes = [], repoU
   const [customPatterns, setCustomPatterns] = useState("");
   const [selectedExtensions, setSelectedExtensions] = useState<string[]>([]);
   const [showCurrentPatterns, setShowCurrentPatterns] = useState(false);
+  const [progress, setProgress] = useState(0);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -74,13 +75,37 @@ export default function PatternManager({ disabled = false, fileTypes = [], repoU
 
   const downloadMutation = useMutation({
     mutationFn: downloadRepository,
+    onMutate: () => {
+      setProgress(0);
+      const timer = setInterval(() => {
+        setProgress((oldProgress) => {
+          // More gradual progress simulation
+          if (oldProgress >= 85) {
+            clearInterval(timer);
+            return 85;
+          }
+          // Slower initial progress
+          const increment = oldProgress < 30 ? 5 : 2;
+          return oldProgress + increment;
+        });
+      }, 300);
+      return () => clearInterval(timer);
+    },
     onSuccess: () => {
+      // Quick progression to 100%
+      setProgress(90);
+      setTimeout(() => {
+        setProgress(100);
+        // Reset after showing completion
+        setTimeout(() => setProgress(0), 2000);
+      }, 500);
       toast({
         title: "Repository downloaded successfully",
         description: "Check your downloads folder for the repository content",
       });
     },
     onError: (error: Error) => {
+      setProgress(0);
       toast({
         title: "Failed to download repository",
         description: error.message,
@@ -91,22 +116,21 @@ export default function PatternManager({ disabled = false, fileTypes = [], repoU
 
   const handleExtensionToggle = (extension: string, checked: boolean) => {
     setSelectedExtensions(prev => {
-      const newSelected = checked 
+      const newSelected = checked
         ? [...prev, extension]
         : prev.filter(ext => ext !== extension);
-      
-      // Automatically update patterns when selection changes
+
       const extensionPatterns = newSelected
         .map(ext => {
           const cleanExt = ext.startsWith('.') ? ext.substring(1) : ext;
           return `*.${cleanExt}`;
         })
         .join('\n');
-      
+
       const newPatterns = customPatterns
         ? `${customPatterns}\n${extensionPatterns}`
         : extensionPatterns;
-      
+
       updateMutation.mutate(newPatterns);
       return newSelected;
     });
@@ -114,8 +138,7 @@ export default function PatternManager({ disabled = false, fileTypes = [], repoU
 
   const handleDownload = () => {
     if (!repoUrl) return;
-    
-    // Get current exclusion patterns from selected extensions
+
     const extensionPatterns = selectedExtensions
       .map(ext => {
         const cleanExt = ext.startsWith('.') ? ext.substring(1) : ext;
@@ -123,7 +146,6 @@ export default function PatternManager({ disabled = false, fileTypes = [], repoU
       })
       .join('\n');
 
-    // Combine with custom patterns if they exist
     const allPatterns = customPatterns
       ? `${customPatterns}\n${extensionPatterns}`
       : extensionPatterns;
@@ -152,6 +174,14 @@ export default function PatternManager({ disabled = false, fileTypes = [], repoU
       </CardHeader>
 
       <CardContent className="space-y-6">
+        {progress > 0 && (
+          <div className="space-y-2">
+            <Progress value={progress} className="w-full" />
+            <p className="text-sm text-muted-foreground">
+              {progress === 100 ? "Download complete!" : `Processing repository... ${progress}%`}
+            </p>
+          </div>
+        )}
         <Alert className="bg-primary/5 border-primary/10">
           <AlertDescription>
             Customize which files to exclude before downloading. This helps reduce the repository size and remove unnecessary files.
@@ -168,7 +198,7 @@ export default function PatternManager({ disabled = false, fileTypes = [], repoU
                 </p>
               </div>
             </div>
-            
+
             <div className="space-y-1">
               {fileTypes.map((type) => (
                 <div

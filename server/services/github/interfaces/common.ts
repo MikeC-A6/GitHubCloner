@@ -7,14 +7,11 @@ export interface FileTypeStats {
 }
 
 export interface FileMetadata {
-  size: number;
-  created: Date;
-  modified: Date;
-  accessed: Date;
-  isSymlink: boolean;
-  permissions: number;
-  userId: number;
-  groupId: number;
+  size: string;
+  created: string;
+  modified: string;
+  permissions: string;
+  generatedAt: string;  // Required field for tracking when the file was processed
 }
 
 export interface FileContent {
@@ -22,13 +19,7 @@ export interface FileContent {
   standardizedName: string;  // Required field for the standardized filename
   content: string;
   githubUrl: string;
-  metadata: {
-    size: string;
-    created: string;
-    modified: string;
-    permissions: string;
-    generatedAt: string;  // Required field for tracking when the file was processed
-  };
+  metadata: FileMetadata;
   language: string;
   role: string;
   directoryContext: string;

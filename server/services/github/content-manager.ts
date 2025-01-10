@@ -13,8 +13,28 @@ export class ContentManager implements IContentManager, IContentFormatter {
   private generateStandardizedFileName(originalPath: string, type: string, role: string): string {
     const date = new Date();
     const timestamp = date.toISOString().split('T')[0].replace(/-/g, '');
-    const dirContext = originalPath.split('/').slice(0, -1).join('-') || 'root';
-    return `repo-${dirContext}_${type}_${role}_${timestamp}.txt`;
+
+    // Extract repository name from the path (if available)
+    const pathParts = originalPath.split('/');
+    const repoContext = pathParts[0] === '' ? 'root' : pathParts[0];
+
+    // Create a more readable directory context
+    const dirContext = pathParts
+      .slice(1, -1) // Exclude the first (repo) and last (filename) parts
+      .join('-')
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '-') // Replace non-alphanumeric chars with hyphens
+      .replace(/-+/g, '-') // Replace multiple consecutive hyphens with a single one
+      .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+
+    // Combine directory context
+    const context = dirContext ? `${repoContext}-${dirContext}` : repoContext;
+
+    // Clean up type and role
+    const cleanType = type.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const cleanRole = role.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    return `${context}_${cleanType}_${cleanRole}_${timestamp}.txt`;
   }
 
   async getFileContents(files: string[], basePath: string, repoUrl: string): Promise<FileContent[]> {
@@ -38,9 +58,15 @@ export class ContentManager implements IContentManager, IContentFormatter {
               }
             };
           } catch (error) {
+            // For error cases, generate a standardized error filename
+            const errorFileName = this.generateStandardizedFileName(
+              file,
+              'error',
+              'unknown'
+            );
             return {
               path: file,
-              standardizedName: this.generateStandardizedFileName(file, 'error', 'unknown'),
+              standardizedName: errorFileName,
               content: `Error processing file: ${error instanceof Error ? error.message : 'Unknown error'}`,
               githubUrl: '',
               metadata: { 
@@ -99,7 +125,6 @@ GitHub URL: ${safeContent.githubUrl}
 Language: ${safeContent.language}
 Role: ${safeContent.role}
 Directory Context: ${safeContent.directoryContext}
-
 ${bullet} METADATA
 ${sectionSeparator}
 Size: ${safeContent.metadata.size}
@@ -107,18 +132,15 @@ Created: ${safeContent.metadata.created}
 Modified: ${safeContent.metadata.modified}
 Generated At: ${safeContent.metadata.generatedAt}
 Permissions: ${safeContent.metadata.permissions}
-
 ${bullet} ANALYSIS
 ${sectionSeparator}
 Content Type: ${safeContent.contentType}
 Dependencies: ${safeContent.dependencies.length > 0 ? 
   '\n' + safeContent.dependencies.map(dep => `  - ${dep}`).join('\n') : 
   'None'}
-
 ${bullet} FILE CONTENT
 ${sectionSeparator}
 ${safeContent.content}
-
 ${separator}\n\n`;
     } catch (error) {
       return `Error formatting file content: ${error instanceof Error ? error.message : 'Unknown error'}\n\n`;

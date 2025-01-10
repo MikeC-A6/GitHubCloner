@@ -16,6 +16,9 @@ export class ContentProcessor implements IContentProcessor, IContentTypeDetector
       const content = await this.fileSystem.readFile(filePath, 'utf-8');
       const stats = await this.fileSystem.stat(filePath);
 
+      // Extract repository name from the URL
+      const repoName = repoUrl.split('/').pop()?.replace('.git', '') || 'unknown-repo';
+
       // Safe construction of GitHub URL
       const repoUrlParts = repoUrl.split('github.com/');
       const fullGithubUrl = repoUrlParts.length > 1 ? 
@@ -24,17 +27,22 @@ export class ContentProcessor implements IContentProcessor, IContentTypeDetector
 
       const metadata = this.extractMetadata(stats);
       const fileExt = this.fileSystem.extname(file).toLowerCase();
+      const contentType = this.determineContentType(file);
+      const role = this.determineRole(file);
+
+      // Create more detailed directory context
+      const pathParts = file.split('/');
+      const directoryContext = pathParts.length > 1 ? 
+        pathParts.slice(0, -1).join('/') : 
+        'root';
 
       // Extract imports only for JavaScript/TypeScript files
       const imports = (fileExt === '.ts' || fileExt === '.js' || fileExt === '.tsx' || fileExt === '.jsx') ? 
         (content.match(/^import.*from.*$/gm) || []) : [];
 
-      const contentType = this.determineContentType(file);
-      const role = this.determineRole(file);
-
       return {
         path: file,
-        standardizedName: '', // Intentionally left empty for ContentManager to set
+        standardizedName: '', // Left empty for ContentManager to set
         content: content || '',
         githubUrl: fullGithubUrl,
         metadata: {
@@ -43,7 +51,7 @@ export class ContentProcessor implements IContentProcessor, IContentTypeDetector
         },
         language: fileExt.slice(1) || 'unknown',
         role: role,
-        directoryContext: this.fileSystem.dirname(file),
+        directoryContext: directoryContext,
         dependencies: imports,
         contentType: contentType
       };
@@ -89,6 +97,15 @@ export class ContentProcessor implements IContentProcessor, IContentTypeDetector
     if (lowercasePath.includes('/types/')) {
       return 'type';
     }
+    if (lowercasePath.includes('/routes/') || lowercasePath.includes('route.') || lowercasePath.includes('router.')) {
+      return 'route';
+    }
+    if (lowercasePath.includes('/models/') || lowercasePath.includes('model.')) {
+      return 'model';
+    }
+    if (lowercasePath.includes('/controllers/') || lowercasePath.includes('controller.')) {
+      return 'controller';
+    }
     return 'source';
   }
 
@@ -103,6 +120,18 @@ export class ContentProcessor implements IContentProcessor, IContentTypeDetector
     }
     if (lowercasePath.includes('type') || lowercasePath.includes('.types.')) {
       return 'type';
+    }
+    if (lowercasePath.includes('controller')) {
+      return 'controller';
+    }
+    if (lowercasePath.includes('service')) {
+      return 'service';
+    }
+    if (lowercasePath.includes('component')) {
+      return 'component';
+    }
+    if (lowercasePath.includes('model')) {
+      return 'model';
     }
     return 'source';
   }

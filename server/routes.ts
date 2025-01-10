@@ -28,10 +28,15 @@ export function registerRoutes(app: Express): Server {
       }
       const content = await downloadRepository(githubUrl, directoryPath);
 
+      // Extract repository name from GitHub URL
+      const repoName = githubUrl.split('/').pop()?.replace('.git', '') || 'repository';
+
+      // Generate standardized filename with repository context
+      const date = new Date().toISOString().split('T')[0].replace(/-/g, '');
+      const filename = `${repoName}-content_${date}.txt`;
+
       // Set proper headers for text file download
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-      const date = new Date().toISOString().split('T')[0].replace(/-/g, '');
-      const filename = `repository-content_${date}.txt`;
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
       res.send(content);
     } catch (error: any) {

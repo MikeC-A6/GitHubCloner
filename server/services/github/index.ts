@@ -6,7 +6,7 @@ import { PatternMatcher } from './pattern-matcher';
 import { ContentManager } from './content-manager';
 import { RepositoryAnalyzer } from './repository-analyzer';
 import { RepositoryDownloader } from './repository-downloader';
-import type { AnalysisResult, FileContent, FileTypeStats } from './interfaces';
+import type { AnalysisResult, FileContent } from './interfaces';
 
 // Create a shared FileSystem instance
 const fileSystem = new FileSystem();
@@ -31,12 +31,12 @@ const repositoryDownloader = new RepositoryDownloader(
   contentManager
 );
 
-// Export the main functions
+// Export the same interface as github.ts
 export const analyzeGitHubRepo = (url: string, directoryPath?: string): Promise<AnalysisResult> =>
   repositoryAnalyzer.analyzeRepository(url, directoryPath);
 
 export const downloadRepository = (url: string, directoryPath?: string): Promise<string> =>
   repositoryDownloader.downloadRepository(url, directoryPath);
 
-// Re-export types
-export type { AnalysisResult, FileContent, FileTypeStats };
+// Export the same types as github.ts
+export type { AnalysisResult, FileContent };

@@ -2,8 +2,9 @@ import { SimpleGit, simpleGit } from 'simple-git';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
+import { IRepositoryManager } from './interfaces/repository';
 
-export class RepositoryManager {
+export class RepositoryManager implements IRepositoryManager {
   private tempDir: string = '';
   private git: SimpleGit;
 
@@ -32,7 +33,7 @@ export class RepositoryManager {
 
   async getTargetPath(baseDir: string, directoryPath?: string): Promise<string> {
     const targetPath = directoryPath ? path.join(baseDir, directoryPath) : baseDir;
-    
+
     try {
       await fs.access(targetPath);
       return targetPath;

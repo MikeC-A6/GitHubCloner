@@ -1,15 +1,14 @@
 import { minimatch } from 'minimatch';
-import path from 'path';
 
-export class PatternMatcher {
-  filterFiles(files: string[], patterns: string[]): string[] {
-    return files.filter(file => {
-      const normalizedFile = file.replace(/\\/g, '/');
-      return !patterns.some(pattern => this.matchesPattern(normalizedFile, pattern));
-    });
-  }
+export interface IPatternMatcher {
+  matches(file: string, pattern: string): boolean;
+  filterFiles(files: string[], patterns: string[]): string[];
+  generateIgnoreSuggestions(files: string[]): string[];
+}
 
-  private matchesPattern(file: string, pattern: string): boolean {
+export class PatternMatcher implements IPatternMatcher {
+  matches(file: string, pattern: string): boolean {
+    const normalizedFile = file.replace(/\\/g, '/');
     const matchOptions = {
       dot: true,
       matchBase: !pattern.includes('/'),
@@ -17,7 +16,11 @@ export class PatternMatcher {
     };
 
     const processedPattern = pattern.endsWith('/') ? pattern + '**' : pattern;
-    return minimatch(file, processedPattern, matchOptions);
+    return minimatch(normalizedFile, processedPattern, matchOptions);
+  }
+
+  filterFiles(files: string[], patterns: string[]): string[] {
+    return files.filter(file => !patterns.some(pattern => this.matches(file, pattern)));
   }
 
   generateIgnoreSuggestions(files: string[]): string[] {

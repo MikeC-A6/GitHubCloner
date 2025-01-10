@@ -161,7 +161,18 @@ export async function downloadRepository(url: string, directoryPath?: string) {
         const filePath = path.join(targetPath, file);
         try {
           const content = await fs.readFile(filePath, 'utf-8');
-          return `File: ${file}\n${'='.repeat(file.length + 6)}\n${content}\n\n`;
+          const stats = await fs.stat(filePath);
+          const repoUrlParts = url.split('github.com/');
+          const fullGithubUrl = `https://github.com/${repoUrlParts[1]}/blob/main/${file}`;
+          
+          const metadata = {
+            size: `${(stats.size / 1024).toFixed(2)} KB`,
+            created: stats.birthtime.toISOString(),
+            modified: stats.mtime.toISOString(),
+            permissions: stats.mode.toString(8)
+          };
+
+          return `File: ${file}\nGitHub URL: ${fullGithubUrl}\nMetadata: ${JSON.stringify(metadata, null, 2)}\n${'='.repeat(file.length + 6)}\n${content}\n\n`;
         } catch (error) {
           return `File: ${file}\nError reading file: ${error}\n\n`;
         }

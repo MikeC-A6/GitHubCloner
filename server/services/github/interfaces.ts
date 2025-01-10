@@ -5,7 +5,7 @@ import type { IFileAnalyzer, IFileStats, IFileMetadata } from './interfaces/file
 import type { IContentProcessor, IContentTypeDetector, IMetadataExtractor } from './interfaces/content-processor';
 import type { IPatternMatcher, IPatternValidator } from './interfaces/pattern-matcher';
 import type { IContentManager, IContentFormatter } from './interfaces/content-manager';
-import type { IFileSystem, IPathOperations } from './interfaces/file-system';
+import type { IFileSystem, IPathOperations, FileSystemError } from './interfaces/file-system';
 
 // Re-export everything from the interface files
 export * from './interfaces/common';
@@ -37,5 +37,6 @@ export type {
   IContentManager,
   IContentFormatter,
   IFileSystem,
-  IPathOperations
+  IPathOperations,
+  FileSystemError
 };

@@ -21,7 +21,7 @@ const githubService = new GitHubService(
   new RepositoryDownloader(repoManager, fileAnalyzer, patternMatcher, contentManager)
 );
 
-// Export with names matching the original github.ts functionality
+// Export functions with names matching the original github.ts functionality
 export const analyzeGitHubRepo = (url: string, directoryPath?: string) =>
   githubService.analyzeRepository(url, directoryPath);
 

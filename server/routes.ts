@@ -28,12 +28,15 @@ export function registerRoutes(app: Express): Server {
       }
       const content = await downloadRepository(githubUrl, directoryPath);
 
-      // Extract repository name from GitHub URL
+      // Extract repository name and context from GitHub URL
       const repoName = githubUrl.split('/').pop()?.replace('.git', '') || 'repository';
+      const context = directoryPath ? 
+        directoryPath.toLowerCase().replace(/[^a-z0-9]/g, '-') : 
+        'root';
 
-      // Generate standardized filename with repository context
+      // Generate standardized filename
       const date = new Date().toISOString().split('T')[0].replace(/-/g, '');
-      const filename = `${repoName}-content_${date}.txt`;
+      const filename = `${repoName}-${context}_source_repository_${date}.txt`;
 
       // Set proper headers for text file download
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');

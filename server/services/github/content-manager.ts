@@ -27,13 +27,14 @@ export class ContentManager implements IContentManager, IContentFormatter {
       .replace(/-+/g, '-') // Replace multiple consecutive hyphens with a single one
       .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
 
-    // Combine directory context
+    // Combine contexts for the filename
     const context = dirContext ? `${repoContext}-${dirContext}` : repoContext;
 
     // Clean up type and role
     const cleanType = type.toLowerCase().replace(/[^a-z0-9]/g, '');
     const cleanRole = role.toLowerCase().replace(/[^a-z0-9]/g, '');
 
+    // Generate final filename with all components
     return `${context}_${cleanType}_${cleanRole}_${timestamp}.txt`;
   }
 
@@ -43,12 +44,14 @@ export class ContentManager implements IContentManager, IContentFormatter {
         files.map(async (file) => {
           try {
             const result = await this.contentProcessor.processFile(file, basePath, repoUrl);
-            // Generate standardized filename based on content type, role and current date
+
+            // Generate standardized filename using content type and role
             const standardizedName = this.generateStandardizedFileName(
               file, 
               result.contentType || 'unknown',
               result.role || 'unknown'
             );
+
             return {
               ...result,
               standardizedName,
@@ -112,36 +115,7 @@ export class ContentManager implements IContentManager, IContentFormatter {
         content: typeof content?.content === 'string' ? content.content : 'No content available'
       };
 
-      const separator = '═'.repeat(80);
-      const sectionSeparator = '─'.repeat(40);
-      const bullet = '■';
-
-      return `${separator}
-${bullet} FILE INFORMATION
-${sectionSeparator}
-Original Path: ${safeContent.path}
-Standardized Name: ${safeContent.standardizedName}
-GitHub URL: ${safeContent.githubUrl}
-Language: ${safeContent.language}
-Role: ${safeContent.role}
-Directory Context: ${safeContent.directoryContext}
-${bullet} METADATA
-${sectionSeparator}
-Size: ${safeContent.metadata.size}
-Created: ${safeContent.metadata.created}
-Modified: ${safeContent.metadata.modified}
-Generated At: ${safeContent.metadata.generatedAt}
-Permissions: ${safeContent.metadata.permissions}
-${bullet} ANALYSIS
-${sectionSeparator}
-Content Type: ${safeContent.contentType}
-Dependencies: ${safeContent.dependencies.length > 0 ? 
-  '\n' + safeContent.dependencies.map(dep => `  - ${dep}`).join('\n') : 
-  'None'}
-${bullet} FILE CONTENT
-${sectionSeparator}
-${safeContent.content}
-${separator}\n\n`;
+      return `${safeContent.standardizedName}\n${'═'.repeat(80)}\n${safeContent.content}\n\n`;
     } catch (error) {
       return `Error formatting file content: ${error instanceof Error ? error.message : 'Unknown error'}\n\n`;
     }

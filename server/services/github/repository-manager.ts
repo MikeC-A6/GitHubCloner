@@ -2,7 +2,7 @@ import { SimpleGit, simpleGit } from 'simple-git';
 import os from 'os';
 import { IRepositoryManager } from './interfaces/repository';
 import { IFileSystem, IPathOperations, FileSystemError } from './interfaces/file-system';
-import { FileSystem } from '../file-system';
+import { FileSystem } from '../../services/file-system';
 
 export class RepositoryManager implements IRepositoryManager {
   private tempDir: string = '';

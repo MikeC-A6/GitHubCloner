@@ -1,12 +1,14 @@
-import { analyzeGitHubRepo as analyzeGitHubRepoImpl, downloadRepository as downloadRepositoryImpl } from './github/index';
+import { GitHubService } from './github/github-service';
 import type { AnalysisResult, FileContent } from './github/interfaces';
+
+const githubService = new GitHubService();
 
 // Export clean, strongly-typed functions that delegate to the implementation
 export const analyzeGitHubRepo = (url: string, directoryPath?: string): Promise<AnalysisResult> => 
-  analyzeGitHubRepoImpl(url, directoryPath);
+  githubService.analyzeRepository(url, directoryPath);
 
 export const downloadRepository = (url: string, directoryPath?: string): Promise<string> => 
-  downloadRepositoryImpl(url, directoryPath);
+  githubService.downloadRepository(url, directoryPath);
 
 // Re-export types
 export type { AnalysisResult, FileContent };

@@ -8,8 +8,10 @@ import { RepositoryAnalyzer } from './repository-analyzer';
 import { RepositoryDownloader } from './repository-downloader';
 import type { AnalysisResult, FileContent, FileTypeStats } from './interfaces';
 
-// Create dependencies with proper initialization
+// Create a shared FileSystem instance
 const fileSystem = new FileSystem();
+
+// Create dependencies with proper initialization
 const repoManager = new RepositoryManager(fileSystem);
 const fileAnalyzer = new FileAnalyzer(fileSystem);
 const patternMatcher = new PatternMatcher();
@@ -29,7 +31,7 @@ const repositoryDownloader = new RepositoryDownloader(
   contentManager
 );
 
-// Export the main functions with the correct names that match what github.ts expects
+// Export the main functions
 export const analyzeGitHubRepo = (url: string, directoryPath?: string): Promise<AnalysisResult> =>
   repositoryAnalyzer.analyzeRepository(url, directoryPath);
 

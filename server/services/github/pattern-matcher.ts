@@ -1,12 +1,7 @@
 import { minimatch } from 'minimatch';
+import type { IPatternMatcher, IPatternValidator } from './interfaces';
 
-export interface IPatternMatcher {
-  matches(file: string, pattern: string): boolean;
-  filterFiles(files: string[], patterns: string[]): string[];
-  generateIgnoreSuggestions(files: string[]): string[];
-}
-
-export class PatternMatcher implements IPatternMatcher {
+export class PatternMatcher implements IPatternMatcher, IPatternValidator {
   matches(file: string, pattern: string): boolean {
     const normalizedFile = file.replace(/\\/g, '/');
     const matchOptions = {
@@ -46,5 +41,14 @@ export class PatternMatcher implements IPatternMatcher {
     }
 
     return Array.from(suggestions);
+  }
+
+  validatePattern(pattern: string): boolean {
+    try {
+      minimatch('test', pattern);
+      return true;
+    } catch {
+      return false;
+    }
   }
 }

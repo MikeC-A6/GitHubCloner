@@ -26,7 +26,4 @@ export interface IRepositoryDownloader {
   downloadRepository(url: string, directoryPath?: string): Promise<string>;
 }
 
-export interface IGitHubService {
-  analyzeRepository(url: string, directoryPath?: string): Promise<AnalysisResult>;
-  downloadRepository(url: string, directoryPath?: string): Promise<string>;
-}
+export interface IGitHubService extends IRepositoryAnalyzer, IRepositoryDownloader {}

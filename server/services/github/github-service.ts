@@ -5,18 +5,31 @@ import { RepositoryDownloader } from './repository-downloader';
 import { FileAnalyzer } from './file-analyzer';
 import { PatternMatcher } from './pattern-matcher';
 import { RepositoryManager } from './repository-manager';
+import { ContentManager } from './content-manager';
 
 export class GitHubService implements IGitHubService {
   private readonly repositoryAnalyzer: IRepositoryAnalyzer;
   private readonly repositoryDownloader: IRepositoryDownloader;
 
-  constructor() {
-    const repoManager = new RepositoryManager();
-    const fileAnalyzer = new FileAnalyzer();
-    const patternMatcher = new PatternMatcher();
+  constructor(
+    repositoryAnalyzer?: IRepositoryAnalyzer,
+    repositoryDownloader?: IRepositoryDownloader
+  ) {
+    // Dependency injection with default implementations
+    if (!repositoryAnalyzer || !repositoryDownloader) {
+      const repoManager = new RepositoryManager();
+      const fileAnalyzer = new FileAnalyzer();
+      const patternMatcher = new PatternMatcher();
+      const contentManager = new ContentManager();
 
-    this.repositoryAnalyzer = new RepositoryAnalyzer(repoManager, fileAnalyzer, patternMatcher);
-    this.repositoryDownloader = new RepositoryDownloader(repoManager, fileAnalyzer, patternMatcher);
+      this.repositoryAnalyzer = repositoryAnalyzer || 
+        new RepositoryAnalyzer(repoManager, fileAnalyzer, patternMatcher);
+      this.repositoryDownloader = repositoryDownloader || 
+        new RepositoryDownloader(repoManager, fileAnalyzer, patternMatcher, contentManager);
+    } else {
+      this.repositoryAnalyzer = repositoryAnalyzer;
+      this.repositoryDownloader = repositoryDownloader;
+    }
   }
 
   async analyzeRepository(url: string, directoryPath?: string): Promise<AnalysisResult> {

@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { analyzeGitHubRepo, downloadRepository } from "./services/github/index";
-import { getPatterns, updatePatterns, resetToDefaultPatterns } from "./services/patterns";
+import { analyzeGitHubRepo, downloadRepository } from "./services/github/index.js";
+import { getPatterns, updatePatterns, resetToDefaultPatterns } from "./services/patterns.js";
 
 export function registerRoutes(app: Express): Server {
   app.post("/api/analyze", async (req, res) => {
@@ -41,7 +41,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.post("/api/patterns/reset", (req, res) => {
+  app.post("/api/patterns/reset", (_req, res) => {
     const patterns = resetToDefaultPatterns();
     res.json({ current: patterns });
   });

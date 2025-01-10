@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { IFileSystem, IPathOperations, FileSystemError } from './github/interfaces/file-system';
+import { IFileSystem, IPathOperations, FileSystemError } from './github/interfaces/file-system.js';
 import type { Stats } from 'fs';
 
 export class FileSystem implements IFileSystem, IPathOperations {

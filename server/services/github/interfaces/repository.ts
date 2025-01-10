@@ -1,4 +1,14 @@
-import type { FileTypeStats, FileContent, AnalysisResult } from '../interfaces';
+import type { FileTypeStats, FileContent } from './common';
+
+export interface AnalysisResult {
+  files: string[];
+  suggestions: string[];
+  stats: {
+    fileCount: number;
+    totalSizeBytes: number;
+    fileTypes: FileTypeStats[];
+  };
+}
 
 export interface IRepositoryManager {
   initializeTempDir(): Promise<string>;

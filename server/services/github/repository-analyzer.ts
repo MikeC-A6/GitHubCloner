@@ -6,15 +6,11 @@ import type { AnalysisResult } from './interfaces';
 import type { IRepositoryAnalyzer } from './interfaces/repository';
 
 export class RepositoryAnalyzer implements IRepositoryAnalyzer {
-  private readonly repoManager: RepositoryManager;
-  private readonly fileAnalyzer: FileAnalyzer;
-  private readonly patternMatcher: PatternMatcher;
-
-  constructor() {
-    this.repoManager = new RepositoryManager();
-    this.fileAnalyzer = new FileAnalyzer();
-    this.patternMatcher = new PatternMatcher();
-  }
+  constructor(
+    private readonly repoManager: RepositoryManager,
+    private readonly fileAnalyzer: FileAnalyzer,
+    private readonly patternMatcher: PatternMatcher
+  ) {}
 
   async analyzeRepository(url: string, directoryPath?: string): Promise<AnalysisResult> {
     try {

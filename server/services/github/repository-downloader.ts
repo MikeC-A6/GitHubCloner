@@ -7,15 +7,13 @@ import type { FileContent } from './interfaces';
 import type { IRepositoryDownloader } from './interfaces/repository';
 
 export class RepositoryDownloader implements IRepositoryDownloader {
-  private readonly repoManager: RepositoryManager;
-  private readonly fileAnalyzer: FileAnalyzer;
-  private readonly patternMatcher: PatternMatcher;
   private readonly contentProcessor: ContentProcessor;
 
-  constructor() {
-    this.repoManager = new RepositoryManager();
-    this.fileAnalyzer = new FileAnalyzer();
-    this.patternMatcher = new PatternMatcher();
+  constructor(
+    private readonly repoManager: RepositoryManager,
+    private readonly fileAnalyzer: FileAnalyzer,
+    private readonly patternMatcher: PatternMatcher
+  ) {
     this.contentProcessor = new ContentProcessor();
   }
 

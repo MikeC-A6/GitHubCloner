@@ -1,8 +1,9 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { FileContent } from './interfaces';
+import { IContentProcessor, IContentTypeDetector, IMetadataExtractor } from './interfaces/content-processor';
 
-export class ContentProcessor {
+export class ContentProcessor implements IContentProcessor, IContentTypeDetector, IMetadataExtractor {
   async processFile(file: string, basePath: string, repoUrl: string): Promise<FileContent> {
     const filePath = path.join(basePath, file);
     const content = await fs.readFile(filePath, 'utf-8');
@@ -10,12 +11,7 @@ export class ContentProcessor {
     const repoUrlParts = repoUrl.split('github.com/');
     const fullGithubUrl = `https://github.com/${repoUrlParts[1]}/blob/main/${file}`;
 
-    const metadata = {
-      size: `${(stats.size / 1024).toFixed(2)} KB`,
-      created: stats.birthtime.toISOString(),
-      modified: stats.mtime.toISOString(),
-      permissions: stats.mode.toString(8)
-    };
+    const metadata = this.extractMetadata(stats);
 
     const fileExt = path.extname(file);
     const imports = fileExt === '.ts' || fileExt === '.js' ? 
@@ -34,7 +30,21 @@ export class ContentProcessor {
     };
   }
 
-  private determineContentType(file: string): string {
+  extractMetadata(stats: { size: number, birthtime: Date, mtime: Date, mode: number }): {
+    size: string;
+    created: string;
+    modified: string;
+    permissions: string;
+  } {
+    return {
+      size: `${(stats.size / 1024).toFixed(2)} KB`,
+      created: stats.birthtime.toISOString(),
+      modified: stats.mtime.toISOString(),
+      permissions: stats.mode.toString(8)
+    };
+  }
+
+  determineContentType(file: string): string {
     if (file.endsWith('.test.ts') || file.endsWith('.spec.ts')) {
       return 'test';
     }

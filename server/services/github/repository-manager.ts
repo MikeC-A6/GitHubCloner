@@ -1,20 +1,31 @@
 import { SimpleGit, simpleGit } from 'simple-git';
-import fs from 'fs/promises';
-import path from 'path';
 import os from 'os';
 import { IRepositoryManager } from './interfaces/repository';
+import { IFileSystem, IPathOperations, FileSystemError } from './interfaces/file-system';
+import { FileSystem } from './services/file-system';
 
 export class RepositoryManager implements IRepositoryManager {
   private tempDir: string = '';
-  private git: SimpleGit;
+  private readonly git: SimpleGit;
+  private readonly fileSystem: IFileSystem & IPathOperations;
 
-  constructor() {
+  constructor(fileSystem?: IFileSystem & IPathOperations) {
     this.git = simpleGit();
+    this.fileSystem = fileSystem || new FileSystem();
   }
 
   async initializeTempDir(): Promise<string> {
-    this.tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'repo-'));
-    return this.tempDir;
+    try {
+      this.tempDir = await this.fileSystem.mkdtemp(
+        this.fileSystem.join(os.tmpdir(), 'repo-')
+      );
+      return this.tempDir;
+    } catch (error: any) {
+      if (error instanceof FileSystemError) {
+        throw error;
+      }
+      throw new Error(`Failed to initialize temp directory: ${error.message}`);
+    }
   }
 
   validateGitHubUrl(url: string): boolean {
@@ -22,29 +33,46 @@ export class RepositoryManager implements IRepositoryManager {
   }
 
   async cloneRepository(url: string): Promise<string> {
-    if (!this.validateGitHubUrl(url)) {
-      throw new Error("Invalid GitHub repository URL");
-    }
+    try {
+      if (!this.validateGitHubUrl(url)) {
+        throw new Error("Invalid GitHub repository URL");
+      }
 
-    const tempDir = await this.initializeTempDir();
-    await this.git.clone(url, tempDir, ['--depth', '1']);
-    return tempDir;
+      const tempDir = await this.initializeTempDir();
+      await this.git.clone(url, tempDir, ['--depth', '1']);
+      return tempDir;
+    } catch (error: any) {
+      if (error instanceof FileSystemError) {
+        throw error;
+      }
+      throw new Error(`Failed to clone repository: ${error.message}`);
+    }
   }
 
   async getTargetPath(baseDir: string, directoryPath?: string): Promise<string> {
-    const targetPath = directoryPath ? path.join(baseDir, directoryPath) : baseDir;
-
     try {
-      await fs.access(targetPath);
+      const targetPath = directoryPath ? 
+        this.fileSystem.join(baseDir, directoryPath) : 
+        baseDir;
+
+      await this.fileSystem.access(targetPath);
       return targetPath;
-    } catch {
-      throw new Error("Specified directory path does not exist in the repository");
+    } catch (error: any) {
+      if (error instanceof FileSystemError) {
+        throw error;
+      }
+      throw new Error(`Failed to access target path: ${error.message}`);
     }
   }
 
   async cleanup(): Promise<void> {
     if (this.tempDir) {
-      await fs.rm(this.tempDir, { recursive: true, force: true }).catch(() => {});
+      try {
+        await this.fileSystem.rm(this.tempDir, { recursive: true, force: true });
+      } catch (error: any) {
+        // Silently handle cleanup errors
+        console.error(`Cleanup failed: ${error.message}`);
+      }
     }
   }
 }

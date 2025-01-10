@@ -1,27 +1,39 @@
-import fs from 'fs/promises';
-import path from 'path';
 import { FileTypeStats, FileMetadata } from './interfaces';
 import { IFileAnalyzer, IFileStats, IFileMetadata } from './interfaces/file-analyzer';
+import { IFileSystem, IPathOperations, FileSystemError } from './interfaces/file-system';
+import { FileSystem } from './services/file-system';
 
 export class FileAnalyzer implements IFileAnalyzer, IFileStats, IFileMetadata {
+  private readonly fileSystem: IFileSystem & IPathOperations;
+
+  constructor(fileSystem?: IFileSystem & IPathOperations) {
+    this.fileSystem = fileSystem || new FileSystem();
+  }
+
   async getAllFiles(dir: string): Promise<string[]> {
-    const files: string[] = [];
+    try {
+      const files: string[] = [];
+      const scan = async (directory: string): Promise<void> => {
+        const entries = await this.fileSystem.readdir(directory, { withFileTypes: true });
 
-    async function scan(directory: string) {
-      const entries = await fs.readdir(directory, { withFileTypes: true });
-
-      for (const entry of entries) {
-        const fullPath = path.join(directory, entry.name);
-        if (entry.isDirectory()) {
-          await scan(fullPath);
-        } else {
-          files.push(path.relative(dir, fullPath));
+        for (const entry of entries) {
+          const fullPath = this.fileSystem.join(directory, entry.name);
+          if (entry.isDirectory()) {
+            await scan(fullPath);
+          } else {
+            files.push(this.fileSystem.relative(dir, fullPath));
+          }
         }
-      }
-    }
+      };
 
-    await scan(dir);
-    return files;
+      await scan(dir);
+      return files;
+    } catch (error: any) {
+      if (error instanceof FileSystemError) {
+        throw error;
+      }
+      throw new Error(`Failed to get files: ${error.message}`);
+    }
   }
 
   async getMetadata(filePath: string): Promise<FileMetadata> {
@@ -29,49 +41,70 @@ export class FileAnalyzer implements IFileAnalyzer, IFileStats, IFileMetadata {
   }
 
   async getFileMetadata(filePath: string): Promise<FileMetadata> {
-    const stats = await fs.stat(filePath);
-    return {
-      size: stats.size,
-      created: stats.birthtime,
-      modified: stats.mtime,
-      accessed: stats.atime,
-      isSymlink: stats.isSymbolicLink(),
-      permissions: stats.mode,
-      userId: stats.uid,
-      groupId: stats.gid
-    };
+    try {
+      const stats = await this.fileSystem.stat(filePath);
+      return {
+        size: stats.size,
+        created: stats.birthtime,
+        modified: stats.mtime,
+        accessed: stats.atime,
+        isSymlink: stats.isSymbolicLink(),
+        permissions: stats.mode,
+        userId: stats.uid,
+        groupId: stats.gid
+      };
+    } catch (error: any) {
+      if (error instanceof FileSystemError) {
+        throw error;
+      }
+      throw new Error(`Failed to get file metadata: ${error.message}`);
+    }
   }
 
   async calculateFileTypeStats(files: string[], basePath: string): Promise<FileTypeStats[]> {
-    const typeStats = new Map<string, FileTypeStats>();
+    try {
+      const typeStats = new Map<string, FileTypeStats>();
 
-    for (const file of files) {
-      const stats = await fs.stat(path.join(basePath, file));
-      const ext = path.extname(file).toLowerCase() || 'no extension';
+      for (const file of files) {
+        const stats = await this.fileSystem.stat(this.fileSystem.join(basePath, file));
+        const ext = this.fileSystem.extname(file).toLowerCase() || 'no extension';
 
-      const currentStats = typeStats.get(ext) || { 
-        extension: ext, 
-        count: 0, 
-        totalBytes: 0 
-      };
+        const currentStats = typeStats.get(ext) || { 
+          extension: ext, 
+          count: 0, 
+          totalBytes: 0 
+        };
 
-      currentStats.count++;
-      currentStats.totalBytes += stats.size;
-      typeStats.set(ext, currentStats);
+        currentStats.count++;
+        currentStats.totalBytes += stats.size;
+        typeStats.set(ext, currentStats);
+      }
+
+      return Array.from(typeStats.values())
+        .sort((a, b) => b.totalBytes - a.totalBytes)
+        .slice(0, 5);
+    } catch (error: any) {
+      if (error instanceof FileSystemError) {
+        throw error;
+      }
+      throw new Error(`Failed to calculate file type stats: ${error.message}`);
     }
-
-    return Array.from(typeStats.values())
-      .sort((a, b) => b.totalBytes - a.totalBytes)
-      .slice(0, 5);
   }
 
   async getTotalSize(files: string[], basePath: string): Promise<number> {
-    let totalSize = 0;
-    for (const file of files) {
-      const stats = await fs.stat(path.join(basePath, file));
-      totalSize += stats.size;
+    try {
+      let totalSize = 0;
+      for (const file of files) {
+        const stats = await this.fileSystem.stat(this.fileSystem.join(basePath, file));
+        totalSize += stats.size;
+      }
+      return totalSize;
+    } catch (error: any) {
+      if (error instanceof FileSystemError) {
+        throw error;
+      }
+      throw new Error(`Failed to get total size: ${error.message}`);
     }
-    return totalSize;
   }
 
   async analyzeFileTypes(files: string[], basePath: string): Promise<{ typeStats: FileTypeStats[], totalSize: number }> {

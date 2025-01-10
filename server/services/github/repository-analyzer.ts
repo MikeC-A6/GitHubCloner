@@ -2,6 +2,7 @@ import { getPatterns } from '../patterns';
 import { RepositoryManager } from './repository-manager';
 import { FileAnalyzer } from './file-analyzer';
 import { PatternMatcher } from './pattern-matcher';
+import { FileSystemError } from './interfaces/file-system';
 import type { AnalysisResult } from './interfaces';
 import type { IRepositoryAnalyzer } from './interfaces/repository';
 
@@ -13,8 +14,9 @@ export class RepositoryAnalyzer implements IRepositoryAnalyzer {
   ) {}
 
   async analyzeRepository(url: string, directoryPath?: string): Promise<AnalysisResult> {
+    let tempDir: string | undefined;
     try {
-      const tempDir = await this.repoManager.cloneRepository(url);
+      tempDir = await this.repoManager.cloneRepository(url);
       const targetPath = await this.repoManager.getTargetPath(tempDir, directoryPath);
 
       const allFiles = await this.fileAnalyzer.getAllFiles(targetPath);
@@ -34,9 +36,14 @@ export class RepositoryAnalyzer implements IRepositoryAnalyzer {
         }
       };
     } catch (error: any) {
+      if (error instanceof FileSystemError) {
+        throw error;
+      }
       throw new Error(`Failed to analyze repository: ${error.message}`);
     } finally {
-      await this.repoManager.cleanup();
+      if (tempDir) {
+        await this.repoManager.cleanup();
+      }
     }
   }
 }

@@ -7,4 +7,9 @@ export interface IContentManager {
 
 export interface IContentFormatter {
   formatContent(content: FileContent): string;
+  generateStandardizedFileName(originalPath: string, type: string, role: string): string;
+}
+
+export interface IContentProcessor {
+  processFile(filePath: string, basePath: string, repoUrl: string): Promise<FileContent>;
 }

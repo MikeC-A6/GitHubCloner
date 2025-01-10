@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,6 +27,8 @@ export default function PatternManager({ disabled = false, fileTypes = [], repoU
   const [selectedExtensions, setSelectedExtensions] = useState<string[]>([]);
   const [showCurrentPatterns, setShowCurrentPatterns] = useState(false);
   const [progress, setProgress] = useState(0);
+  const progressTimerRef = useRef<NodeJS.Timeout>();
+  const completionTimerRef = useRef<NodeJS.Timeout>();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -76,35 +78,83 @@ export default function PatternManager({ disabled = false, fileTypes = [], repoU
   const downloadMutation = useMutation({
     mutationFn: downloadRepository,
     onMutate: () => {
+      // Clear any existing timers
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+      if (completionTimerRef.current) clearInterval(completionTimerRef.current);
+
       setProgress(0);
-      const timer = setInterval(() => {
+      progressTimerRef.current = setInterval(() => {
         setProgress((oldProgress) => {
-          // More gradual progress simulation
-          if (oldProgress >= 85) {
-            clearInterval(timer);
-            return 85;
+          // Initial phase: 0-50% during file processing
+          if (oldProgress < 50) {
+            return Math.min(50, oldProgress + (oldProgress < 25 ? 2 : 1));
           }
-          // Slower initial progress
-          const increment = oldProgress < 30 ? 5 : 2;
-          return oldProgress + increment;
+          // Middle phase: 50-80% during download preparation
+          if (oldProgress < 80) {
+            return Math.min(80, oldProgress + 0.5);
+          }
+          // Hold at 80% waiting for completion
+          return 80;
         });
-      }, 300);
-      return () => clearInterval(timer);
+      }, 100); // Faster updates for smoother animation
+
+      return () => {
+        if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+      };
     },
     onSuccess: () => {
-      // Quick progression to 100%
-      setProgress(90);
+      // Clear the progress timer
+      if (progressTimerRef.current) {
+        clearInterval(progressTimerRef.current);
+        progressTimerRef.current = undefined;
+      }
+
+      // Final phase: Quick progression to 100%
+      let step = 0;
+      const finalSteps = 3; // Fewer steps for quicker completion
+
+      completionTimerRef.current = setInterval(() => {
+        step++;
+        setProgress(prev => {
+          const remaining = 100 - prev;
+          const increment = remaining / (finalSteps - step + 1);
+          const newProgress = prev + increment;
+
+          if (step >= finalSteps || newProgress >= 99.9) {
+            if (completionTimerRef.current) {
+              clearInterval(completionTimerRef.current);
+              completionTimerRef.current = undefined;
+            }
+            return 100;
+          }
+          return newProgress;
+        });
+      }, 50); // Faster completion animation
+
+      // Reset after showing completion
       setTimeout(() => {
-        setProgress(100);
-        // Reset after showing completion
-        setTimeout(() => setProgress(0), 2000);
+        if (completionTimerRef.current) {
+          clearInterval(completionTimerRef.current);
+          completionTimerRef.current = undefined;
+        }
+        setTimeout(() => setProgress(0), 1000);
       }, 500);
+
       toast({
         title: "Repository downloaded successfully",
         description: "Check your downloads folder for the repository content",
       });
     },
     onError: (error: Error) => {
+      // Clear all timers on error
+      if (progressTimerRef.current) {
+        clearInterval(progressTimerRef.current);
+        progressTimerRef.current = undefined;
+      }
+      if (completionTimerRef.current) {
+        clearInterval(completionTimerRef.current);
+        completionTimerRef.current = undefined;
+      }
       setProgress(0);
       toast({
         title: "Failed to download repository",
@@ -113,6 +163,14 @@ export default function PatternManager({ disabled = false, fileTypes = [], repoU
       });
     },
   });
+
+  const getProgressStatus = () => {
+    if (progress === 0) return "";
+    if (progress === 100) return "Download complete!";
+    if (progress < 50) return `Processing repository... ${Math.round(progress)}%`;
+    if (progress < 80) return `Preparing download... ${Math.round(progress)}%`;
+    return `Finalizing... ${Math.round(progress)}%`;
+  };
 
   const handleExtensionToggle = (extension: string, checked: boolean) => {
     setSelectedExtensions(prev => {
@@ -178,7 +236,7 @@ export default function PatternManager({ disabled = false, fileTypes = [], repoU
           <div className="space-y-2">
             <Progress value={progress} className="w-full" />
             <p className="text-sm text-muted-foreground">
-              {progress === 100 ? "Download complete!" : `Processing repository... ${progress}%`}
+              {getProgressStatus()}
             </p>
           </div>
         )}

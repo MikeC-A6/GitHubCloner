@@ -10,9 +10,10 @@ export class ContentManager implements IContentManager, IContentFormatter {
     this.contentProcessor = contentProcessor || new ContentProcessor();
   }
 
-  private generateStandardizedFileName(originalPath: string, type: string, role: string): string {
+  generateStandardizedFileName(originalPath: string, type: string, role: string): string {
     const date = new Date();
-    const timestamp = date.toISOString().split('T')[0].replace(/-/g, '');
+    const timestamp = date.toISOString().split('T')[0].replace(/-/g, '') + 
+                     '_' + date.toISOString().split('T')[1].split('.')[0].replace(/:/g, '');
 
     // Extract repository name from the path (if available)
     const pathParts = originalPath.split('/');

@@ -172,7 +172,24 @@ export async function downloadRepository(url: string, directoryPath?: string) {
             permissions: stats.mode.toString(8)
           };
 
-          return `File: ${file}\nGitHub URL: ${fullGithubUrl}\nMetadata: ${JSON.stringify(metadata, null, 2)}\n${'='.repeat(file.length + 6)}\n${content}\n\n`;
+          // Calculate relative imports and dependencies
+          const fileExt = path.extname(file);
+          const imports = fileExt === '.ts' || fileExt === '.js' ? 
+            content.match(/^import.*from.*$/gm) || [] : [];
+          
+          return `File: ${file}
+GitHub URL: ${fullGithubUrl}
+Language: ${fileExt.slice(1) || 'unknown'}
+Role: ${file.includes('test') || file.includes('spec') ? 'test' : 'source'}
+Directory Context: ${path.dirname(file)}
+Dependencies: ${imports.join(', ')}
+Metadata: ${JSON.stringify(metadata, null, 2)}
+Content Type: ${file.endsWith('.test.ts') || file.endsWith('.spec.ts') ? 'test' : 
+               file.includes('/components/') ? 'component' :
+               file.includes('/services/') ? 'service' :
+               file.includes('/utils/') ? 'utility' : 'source'}
+${'='.repeat(file.length + 6)}
+${content}\n\n`;
         } catch (error) {
           return `File: ${file}\nError reading file: ${error}\n\n`;
         }

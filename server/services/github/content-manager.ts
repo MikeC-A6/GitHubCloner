@@ -10,22 +10,54 @@ export class ContentManager implements IContentManager, IContentFormatter {
     this.contentProcessor = contentProcessor || new ContentProcessor();
   }
 
+  private generateStandardizedFileName(originalPath: string, type: string, role: string): string {
+    const date = new Date();
+    const timestamp = date.toISOString().split('T')[0].replace(/-/g, '');
+    const ext = originalPath.split('.').pop() || 'txt';
+    const dirContext = originalPath.split('/').slice(0, -1).join('-') || 'root';
+    return `repo-${dirContext}_${type}_${role}_${timestamp}.${ext}`;
+  }
+
   async getFileContents(files: string[], basePath: string, repoUrl: string): Promise<FileContent[]> {
     return Promise.all(
-      files.map(async (file: string) => 
-        this.contentProcessor.processFile(file, basePath, repoUrl)
-          .catch((error: Error) => ({
+      files.map(async (file) => {
+        try {
+          const result = await this.contentProcessor.processFile(file, basePath, repoUrl);
+          // Generate standardized filename based on content type, role and current date
+          const standardizedName = this.generateStandardizedFileName(
+            file, 
+            result.contentType,
+            result.role
+          );
+          return {
+            ...result,
+            standardizedName,
+            metadata: {
+              ...result.metadata,
+              generatedAt: new Date().toISOString(),
+            }
+          };
+        } catch (error) {
+          return {
             path: file,
-            content: `Error processing file: ${error.message}`,
+            standardizedName: this.generateStandardizedFileName(file, 'error', 'unknown'),
+            content: `Error processing file: ${error instanceof Error ? error.message : 'Unknown error'}`,
             githubUrl: '',
-            metadata: { size: '0 KB', created: '', modified: '', permissions: '' },
+            metadata: { 
+              size: '0 KB', 
+              created: '', 
+              modified: '', 
+              permissions: '',
+              generatedAt: new Date().toISOString()
+            },
             language: 'unknown',
             role: 'unknown',
             directoryContext: '',
             dependencies: [],
             contentType: 'error'
-          } as FileContent))
-      )
+          } as FileContent;
+        }
+      })
     );
   }
 
@@ -34,6 +66,7 @@ export class ContentManager implements IContentManager, IContentFormatter {
       // Safe default values for potentially undefined fields
       const safeContent = {
         path: content?.path || 'Unknown path',
+        standardizedName: content?.standardizedName || this.generateStandardizedFileName('unknown.txt', 'unknown', 'unknown'),
         githubUrl: content?.githubUrl || 'No URL available',
         language: content?.language || 'unknown',
         role: content?.role || 'unknown',
@@ -42,7 +75,8 @@ export class ContentManager implements IContentManager, IContentFormatter {
           size: content?.metadata?.size || '0 KB',
           created: content?.metadata?.created || 'Unknown',
           modified: content?.metadata?.modified || 'Unknown',
-          permissions: content?.metadata?.permissions || 'Unknown'
+          permissions: content?.metadata?.permissions || 'Unknown',
+          generatedAt: content?.metadata?.generatedAt || new Date().toISOString()
         },
         contentType: content?.contentType || 'unknown',
         dependencies: Array.isArray(content?.dependencies) ? content.dependencies : [],
@@ -56,7 +90,8 @@ export class ContentManager implements IContentManager, IContentFormatter {
       return `${separator}
 ${bullet} FILE INFORMATION
 ${sectionSeparator}
-Path: ${safeContent.path}
+Original Path: ${safeContent.path}
+Standardized Name: ${safeContent.standardizedName}
 GitHub URL: ${safeContent.githubUrl}
 Language: ${safeContent.language}
 Role: ${safeContent.role}
@@ -67,6 +102,7 @@ ${sectionSeparator}
 Size: ${safeContent.metadata.size}
 Created: ${safeContent.metadata.created}
 Modified: ${safeContent.metadata.modified}
+Generated At: ${safeContent.metadata.generatedAt}
 Permissions: ${safeContent.metadata.permissions}
 
 ${bullet} ANALYSIS

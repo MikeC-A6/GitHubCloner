@@ -19,6 +19,7 @@ export interface FileMetadata {
 
 export interface FileContent {
   path: string;
+  standardizedName: string;  // Required field for the standardized filename
   content: string;
   githubUrl: string;
   metadata: {
@@ -26,6 +27,7 @@ export interface FileContent {
     created: string;
     modified: string;
     permissions: string;
+    generatedAt: string;  // Required field for tracking when the file was processed
   };
   language: string;
   role: string;

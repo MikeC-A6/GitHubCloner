@@ -31,9 +31,13 @@ export class ContentProcessor implements IContentProcessor, IContentTypeDetector
 
       return {
         path: file,
+        standardizedName: '', // Will be set by ContentManager
         content: content || '',
         githubUrl: fullGithubUrl,
-        metadata,
+        metadata: {
+          ...metadata,
+          generatedAt: new Date().toISOString()
+        },
         language: fileExt.slice(1) || 'unknown',
         role: this.determineRole(file),
         directoryContext: this.fileSystem.dirname(file),
@@ -51,13 +55,15 @@ export class ContentProcessor implements IContentProcessor, IContentTypeDetector
     created: string;
     modified: string;
     permissions: string;
+    generatedAt: string;
   } {
     try {
       return {
         size: `${(stats.size / 1024).toFixed(2)} KB`,
         created: stats.birthtime.toISOString(),
         modified: stats.mtime.toISOString(),
-        permissions: stats.mode.toString(8)
+        permissions: stats.mode.toString(8),
+        generatedAt: new Date().toISOString()
       };
     } catch (error) {
       console.error('Error extracting metadata:', error);
@@ -65,7 +71,8 @@ export class ContentProcessor implements IContentProcessor, IContentTypeDetector
         size: '0 KB',
         created: new Date().toISOString(),
         modified: new Date().toISOString(),
-        permissions: '644'
+        permissions: '644',
+        generatedAt: new Date().toISOString()
       };
     }
   }

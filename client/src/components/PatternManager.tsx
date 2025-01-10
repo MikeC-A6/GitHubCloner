@@ -260,25 +260,32 @@ export default function PatternManager({ disabled = false, fileTypes = [], repoU
           </CollapsibleContent>
         </Collapsible>
 
-        <div className="flex items-center justify-between pt-6 border-t">
-          <div className="space-y-1">
-            <h3 className="font-medium">Download Repository</h3>
-            <p className="text-sm text-muted-foreground">
-              {selectedExtensions.length > 0 || customPatterns
-                ? `Download with ${selectedExtensions.length} file types and ${customPatterns ? "custom patterns" : ""} excluded`
-                : "Download the complete repository"}
-            </p>
+        <div className="flex items-start justify-between pt-6 border-t">
+          <div className="space-y-1 max-w-[60%]">
+            <h3 className="font-medium">Convert and Download</h3>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Download your repository as a single text file, with all code and contents combined
+              </p>
+              {(selectedExtensions.length > 0 || customPatterns) && (
+                <p className="text-xs text-muted-foreground">
+                  Currently excluding: {selectedExtensions.length} file types {customPatterns ? "and custom patterns" : ""}
+                </p>
+              )}
+            </div>
           </div>
-          <Button
-            onClick={handleDownload}
-            disabled={disabled || !repoUrl || downloadMutation.isPending}
-            size="lg"
-            className="gap-2"
-          >
-            {downloadMutation.isPending && <Loader2 className="w-5 h-5 animate-spin" />}
-            <Download className="w-5 h-5" />
-            <span>{downloadMutation.isPending ? "Downloading..." : "Download"}</span>
-          </Button>
+          <div className="flex-shrink-0 ml-4">
+            <Button
+              onClick={handleDownload}
+              disabled={disabled || !repoUrl || downloadMutation.isPending}
+              size="lg"
+              className="gap-2 whitespace-nowrap"
+            >
+              {downloadMutation.isPending && <Loader2 className="w-5 h-5 animate-spin" />}
+              <Download className="w-5 h-5" />
+              <span>{downloadMutation.isPending ? "Converting..." : "Download as Text"}</span>
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>

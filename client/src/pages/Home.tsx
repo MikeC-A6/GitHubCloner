@@ -46,9 +46,19 @@ export default function Home() {
         <Card className="border-2">
           <CardHeader>
             <CardTitle>Repository Details</CardTitle>
-            <CardDescription>Enter the GitHub repository URL and optional directory path to analyze</CardDescription>
+            <CardDescription>
+              First, analyze your repository to see its contents and prepare it for text conversion
+            </CardDescription>
           </CardHeader>
           <CardContent>
+            <div className="mb-6 rounded-lg bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+              <p>The analysis will:</p>
+              <ul className="mt-2 ml-4 list-disc space-y-1">
+                <li>Calculate total repository size</li>
+                <li>Identify all file types and their sizes</li>
+                <li>Help you decide what to exclude before converting</li>
+              </ul>
+            </div>
             <RepositoryForm 
               onAnalyzeStart={() => {
                 setAnalyzing(true);

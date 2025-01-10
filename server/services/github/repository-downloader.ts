@@ -1,10 +1,10 @@
-import { RepositoryManager } from './repository-manager.js';
-import { FileAnalyzer } from './file-analyzer.js';
-import { PatternMatcher } from './pattern-matcher.js';
-import { ContentManager } from './content-manager.js';
-import { getPatterns } from '../patterns.js';
-import type { IFileAnalyzer, IPatternMatcher, IRepositoryDownloader } from './interfaces.js';
-import type { IContentManager } from './interfaces/content-manager.js';
+import { RepositoryManager } from './repository-manager';
+import { FileAnalyzer } from './file-analyzer';
+import { PatternMatcher } from './pattern-matcher';
+import { ContentManager } from './content-manager';
+import { getPatterns } from '../patterns';
+import type { IFileAnalyzer, IPatternMatcher, IRepositoryDownloader } from './interfaces';
+import type { IContentManager } from './interfaces/content-manager';
 
 export class RepositoryDownloader implements IRepositoryDownloader {
   private readonly contentManager: IContentManager;

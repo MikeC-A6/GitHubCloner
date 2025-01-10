@@ -1,7 +1,7 @@
-import { IContentManager, IContentFormatter } from './interfaces/content-manager.js';
-import { IContentProcessor } from './interfaces/content-processor.js';
-import { FileContent } from './interfaces.js';
-import { ContentProcessor } from './content-processor.js';
+import { IContentManager, IContentFormatter } from './interfaces/content-manager';
+import { IContentProcessor } from './interfaces/content-processor';
+import { FileContent } from './interfaces';
+import { ContentProcessor } from './content-processor';
 
 export class ContentManager implements IContentManager, IContentFormatter {
   private readonly contentProcessor: IContentProcessor;

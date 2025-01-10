@@ -1,5 +1,5 @@
 import { minimatch } from 'minimatch';
-import type { IPatternMatcher, IPatternValidator } from './interfaces/pattern-matcher.js';
+import type { IPatternMatcher, IPatternValidator } from './interfaces/pattern-matcher';
 
 export class PatternMatcher implements IPatternMatcher, IPatternValidator {
   matches(file: string, pattern: string): boolean {

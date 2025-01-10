@@ -1,0 +1,8 @@
+import { SimpleGit, simpleGit } from 'simple-git';
+import fs from 'fs/promises';
+import path from 'path';
+import os from 'os';
+import { getPatterns } from './patterns.js';
+import { minimatch } from 'minimatch';
+
+// Rest of the original file content...

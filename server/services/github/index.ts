@@ -1,23 +1,20 @@
-import { getPatterns } from '../patterns';
-import { FileSystem } from '../file-system';
-import { RepositoryManager } from './repository-manager';
-import { FileAnalyzer } from './file-analyzer';
-import { PatternMatcher } from './pattern-matcher';
-import { ContentManager } from './content-manager';
+// Re-export functionality from individual service files
 import { RepositoryAnalyzer } from './repository-analyzer';
 import { RepositoryDownloader } from './repository-downloader';
-import type { AnalysisResult, FileContent } from './interfaces';
+import { FileAnalyzer } from './file-analyzer';
+import { PatternMatcher } from './pattern-matcher';
+import { RepositoryManager } from './repository-manager';
+import { ContentManager } from './content-manager';
+import { FileSystem } from '../file-system';
 
-// Create a shared FileSystem instance
+// Create shared instances
 const fileSystem = new FileSystem();
-
-// Create dependencies with proper initialization
 const repoManager = new RepositoryManager(fileSystem);
 const fileAnalyzer = new FileAnalyzer(fileSystem);
 const patternMatcher = new PatternMatcher();
 const contentManager = new ContentManager();
 
-// Create analyzers with proper dependencies
+// Create main service instances
 const repositoryAnalyzer = new RepositoryAnalyzer(
   repoManager,
   fileAnalyzer,
@@ -31,12 +28,12 @@ const repositoryDownloader = new RepositoryDownloader(
   contentManager
 );
 
-// Export the same interface as github.ts
-export const analyzeGitHubRepo = (url: string, directoryPath?: string): Promise<AnalysisResult> =>
+// Export the public API
+export const analyzeGitHubRepo = async (url: string, directoryPath?: string) =>
   repositoryAnalyzer.analyzeRepository(url, directoryPath);
 
-export const downloadRepository = (url: string, directoryPath?: string): Promise<string> =>
+export const downloadRepository = async (url: string, directoryPath?: string) =>
   repositoryDownloader.downloadRepository(url, directoryPath);
 
-// Export the same types as github.ts
-export type { AnalysisResult, FileContent };
+// Re-export types
+export type { AnalysisResult, FileContent } from './interfaces';

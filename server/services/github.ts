@@ -1,3 +1,2 @@
-// This file has been refactored into the server/services/github directory
-// All functionality is now available through server/services/github/index.ts
+// All functionality has been moved to server/services/github/* 
 // This file can be safely removed

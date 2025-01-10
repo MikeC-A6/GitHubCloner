@@ -1,5 +1,5 @@
 import { getPatterns } from '../patterns';
-import { FileSystem } from './services/file-system';
+import { FileSystem } from '../file-system';
 import { RepositoryManager } from './repository-manager';
 import { FileAnalyzer } from './file-analyzer';
 import { PatternMatcher } from './pattern-matcher';

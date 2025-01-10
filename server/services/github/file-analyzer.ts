@@ -1,7 +1,7 @@
 import { FileTypeStats, FileMetadata } from './interfaces';
 import { IFileAnalyzer, IFileStats, IFileMetadata } from './interfaces/file-analyzer';
 import { IFileSystem, IPathOperations, FileSystemError } from './interfaces/file-system';
-import { FileSystem } from './services/file-system';
+import { FileSystem } from '../file-system';
 
 export class FileAnalyzer implements IFileAnalyzer, IFileStats, IFileMetadata {
   private readonly fileSystem: IFileSystem & IPathOperations;

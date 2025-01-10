@@ -1,7 +1,7 @@
 import { FileContent } from './interfaces';
 import { IContentProcessor, IContentTypeDetector, IMetadataExtractor } from './interfaces/content-processor';
 import { IFileSystem, IPathOperations } from './interfaces/file-system';
-import { FileSystem } from './services/file-system';
+import { FileSystem } from '../file-system';
 
 export class ContentProcessor implements IContentProcessor, IContentTypeDetector, IMetadataExtractor {
   private readonly fileSystem: IFileSystem & IPathOperations;

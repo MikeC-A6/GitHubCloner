@@ -13,52 +13,55 @@ export class ContentManager implements IContentManager, IContentFormatter {
   private generateStandardizedFileName(originalPath: string, type: string, role: string): string {
     const date = new Date();
     const timestamp = date.toISOString().split('T')[0].replace(/-/g, '');
-    const ext = originalPath.split('.').pop() || 'txt';
     const dirContext = originalPath.split('/').slice(0, -1).join('-') || 'root';
-    return `repo-${dirContext}_${type}_${role}_${timestamp}.${ext}`;
+    return `repo-${dirContext}_${type}_${role}_${timestamp}.txt`;
   }
 
   async getFileContents(files: string[], basePath: string, repoUrl: string): Promise<FileContent[]> {
-    return Promise.all(
-      files.map(async (file) => {
-        try {
-          const result = await this.contentProcessor.processFile(file, basePath, repoUrl);
-          // Generate standardized filename based on content type, role and current date
-          const standardizedName = this.generateStandardizedFileName(
-            file, 
-            result.contentType,
-            result.role
-          );
-          return {
-            ...result,
-            standardizedName,
-            metadata: {
-              ...result.metadata,
-              generatedAt: new Date().toISOString(),
-            }
-          };
-        } catch (error) {
-          return {
-            path: file,
-            standardizedName: this.generateStandardizedFileName(file, 'error', 'unknown'),
-            content: `Error processing file: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            githubUrl: '',
-            metadata: { 
-              size: '0 KB', 
-              created: '', 
-              modified: '', 
-              permissions: '',
-              generatedAt: new Date().toISOString()
-            },
-            language: 'unknown',
-            role: 'unknown',
-            directoryContext: '',
-            dependencies: [],
-            contentType: 'error'
-          } as FileContent;
-        }
-      })
-    );
+    try {
+      return await Promise.all(
+        files.map(async (file) => {
+          try {
+            const result = await this.contentProcessor.processFile(file, basePath, repoUrl);
+            // Generate standardized filename based on content type, role and current date
+            const standardizedName = this.generateStandardizedFileName(
+              file, 
+              result.contentType || 'unknown',
+              result.role || 'unknown'
+            );
+            return {
+              ...result,
+              standardizedName,
+              metadata: {
+                ...result.metadata,
+                generatedAt: new Date().toISOString()
+              }
+            };
+          } catch (error) {
+            return {
+              path: file,
+              standardizedName: this.generateStandardizedFileName(file, 'error', 'unknown'),
+              content: `Error processing file: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              githubUrl: '',
+              metadata: { 
+                size: '0 KB', 
+                created: '', 
+                modified: '', 
+                permissions: '',
+                generatedAt: new Date().toISOString()
+              },
+              language: 'unknown',
+              role: 'unknown',
+              directoryContext: '',
+              dependencies: [],
+              contentType: 'error'
+            };
+          }
+        })
+      );
+    } catch (error) {
+      throw new Error(`Failed to process files: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   formatContent(content: FileContent): string {
@@ -66,7 +69,7 @@ export class ContentManager implements IContentManager, IContentFormatter {
       // Safe default values for potentially undefined fields
       const safeContent = {
         path: content?.path || 'Unknown path',
-        standardizedName: content?.standardizedName || this.generateStandardizedFileName('unknown.txt', 'unknown', 'unknown'),
+        standardizedName: content?.standardizedName || this.generateStandardizedFileName('unknown', 'unknown', 'unknown'),
         githubUrl: content?.githubUrl || 'No URL available',
         language: content?.language || 'unknown',
         role: content?.role || 'unknown',
@@ -118,7 +121,6 @@ ${safeContent.content}
 
 ${separator}\n\n`;
     } catch (error) {
-      console.error('Error formatting content:', error);
       return `Error formatting file content: ${error instanceof Error ? error.message : 'Unknown error'}\n\n`;
     }
   }
@@ -130,7 +132,6 @@ ${separator}\n\n`;
       }
       return contents.map(content => this.formatContent(content)).join('');
     } catch (error) {
-      console.error('Error in formatContentOutput:', error);
       return `Error formatting output: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
   }

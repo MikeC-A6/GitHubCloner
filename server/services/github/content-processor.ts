@@ -29,9 +29,12 @@ export class ContentProcessor implements IContentProcessor, IContentTypeDetector
       const imports = (fileExt === '.ts' || fileExt === '.js' || fileExt === '.tsx' || fileExt === '.jsx') ? 
         (content.match(/^import.*from.*$/gm) || []) : [];
 
+      const contentType = this.determineContentType(file);
+      const role = this.determineRole(file);
+
       return {
         path: file,
-        standardizedName: '', // Will be set by ContentManager
+        standardizedName: '', // Intentionally left empty for ContentManager to set
         content: content || '',
         githubUrl: fullGithubUrl,
         metadata: {
@@ -39,14 +42,13 @@ export class ContentProcessor implements IContentProcessor, IContentTypeDetector
           generatedAt: new Date().toISOString()
         },
         language: fileExt.slice(1) || 'unknown',
-        role: this.determineRole(file),
+        role: role,
         directoryContext: this.fileSystem.dirname(file),
         dependencies: imports,
-        contentType: this.determineContentType(file)
+        contentType: contentType
       };
     } catch (error) {
-      console.error(`Error processing file ${file}:`, error);
-      throw error;
+      throw error; // Let ContentManager handle error cases with proper file naming
     }
   }
 
@@ -57,72 +59,51 @@ export class ContentProcessor implements IContentProcessor, IContentTypeDetector
     permissions: string;
     generatedAt: string;
   } {
-    try {
-      return {
-        size: `${(stats.size / 1024).toFixed(2)} KB`,
-        created: stats.birthtime.toISOString(),
-        modified: stats.mtime.toISOString(),
-        permissions: stats.mode.toString(8),
-        generatedAt: new Date().toISOString()
-      };
-    } catch (error) {
-      console.error('Error extracting metadata:', error);
-      return {
-        size: '0 KB',
-        created: new Date().toISOString(),
-        modified: new Date().toISOString(),
-        permissions: '644',
-        generatedAt: new Date().toISOString()
-      };
-    }
+    return {
+      size: `${(stats.size / 1024).toFixed(2)} KB`,
+      created: stats.birthtime.toISOString(),
+      modified: stats.mtime.toISOString(),
+      permissions: stats.mode.toString(8),
+      generatedAt: new Date().toISOString()
+    };
   }
 
   determineContentType(file: string): string {
-    try {
-      const lowercasePath = file.toLowerCase();
+    const lowercasePath = file.toLowerCase();
 
-      if (lowercasePath.includes('.test.') || lowercasePath.includes('.spec.')) {
-        return 'test';
-      }
-      if (lowercasePath.includes('/components/')) {
-        return 'component';
-      }
-      if (lowercasePath.includes('/services/')) {
-        return 'service';
-      }
-      if (lowercasePath.includes('/utils/')) {
-        return 'utility';
-      }
-      if (lowercasePath.includes('/interfaces/')) {
-        return 'interface';
-      }
-      if (lowercasePath.includes('/types/')) {
-        return 'type';
-      }
-      return 'source';
-    } catch (error) {
-      console.error('Error determining content type:', error);
-      return 'unknown';
+    if (lowercasePath.includes('.test.') || lowercasePath.includes('.spec.')) {
+      return 'test';
     }
+    if (lowercasePath.includes('/components/')) {
+      return 'component';
+    }
+    if (lowercasePath.includes('/services/')) {
+      return 'service';
+    }
+    if (lowercasePath.includes('/utils/')) {
+      return 'utility';
+    }
+    if (lowercasePath.includes('/interfaces/')) {
+      return 'interface';
+    }
+    if (lowercasePath.includes('/types/')) {
+      return 'type';
+    }
+    return 'source';
   }
 
   private determineRole(file: string): string {
-    try {
-      const lowercasePath = file.toLowerCase();
+    const lowercasePath = file.toLowerCase();
 
-      if (lowercasePath.includes('.test.') || lowercasePath.includes('.spec.')) {
-        return 'test';
-      }
-      if (lowercasePath.includes('interface') || lowercasePath.includes('.d.ts')) {
-        return 'interface';
-      }
-      if (lowercasePath.includes('type') || lowercasePath.includes('.types.')) {
-        return 'type';
-      }
-      return 'source';
-    } catch (error) {
-      console.error('Error determining role:', error);
-      return 'unknown';
+    if (lowercasePath.includes('.test.') || lowercasePath.includes('.spec.')) {
+      return 'test';
     }
+    if (lowercasePath.includes('interface') || lowercasePath.includes('.d.ts')) {
+      return 'interface';
+    }
+    if (lowercasePath.includes('type') || lowercasePath.includes('.types.')) {
+      return 'type';
+    }
+    return 'source';
   }
 }

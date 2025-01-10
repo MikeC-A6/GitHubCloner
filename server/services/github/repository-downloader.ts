@@ -5,6 +5,7 @@ import { ContentManager } from './content-manager';
 import { getPatterns } from '../patterns';
 import type { IFileAnalyzer, IPatternMatcher, IRepositoryDownloader } from './interfaces';
 import type { IContentManager } from './interfaces/content-manager';
+import { FileSystemError } from './interfaces/file-system';
 
 export class RepositoryDownloader implements IRepositoryDownloader {
   private readonly contentManager: IContentManager;
@@ -19,8 +20,9 @@ export class RepositoryDownloader implements IRepositoryDownloader {
   }
 
   async downloadRepository(url: string, directoryPath?: string): Promise<string> {
+    let tempDir: string | undefined;
     try {
-      const tempDir = await this.repoManager.cloneRepository(url);
+      tempDir = await this.repoManager.cloneRepository(url);
       const targetPath = await this.repoManager.getTargetPath(tempDir, directoryPath);
 
       const files = await this.fileAnalyzer.getAllFiles(targetPath);
@@ -29,11 +31,15 @@ export class RepositoryDownloader implements IRepositoryDownloader {
 
       const contents = await this.contentManager.getFileContents(filteredFiles, targetPath, url);
       return this.contentManager.formatContentOutput(contents);
-
     } catch (error: any) {
+      if (error instanceof FileSystemError) {
+        throw error;
+      }
       throw new Error(`Failed to download repository: ${error.message}`);
     } finally {
-      await this.repoManager.cleanup();
+      if (tempDir) {
+        await this.repoManager.cleanup();
+      }
     }
   }
 }

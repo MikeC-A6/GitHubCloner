@@ -24,25 +24,78 @@ export class ContentManager implements IContentManager, IContentFormatter {
             directoryContext: '',
             dependencies: [],
             contentType: 'error'
-          }))
+          } as FileContent))
       )
     );
   }
 
   formatContent(content: FileContent): string {
-    return `File: ${content.path}
-GitHub URL: ${content.githubUrl}
-Language: ${content.language}
-Role: ${content.role}
-Directory Context: ${content.directoryContext}
-Dependencies: ${content.dependencies.join(', ')}
-Metadata: ${JSON.stringify(content.metadata, null, 2)}
-Content Type: ${content.contentType}
-${'='.repeat(content.path.length + 6)}
-${content.content}\n\n`;
+    try {
+      // Safe default values for potentially undefined fields
+      const safeContent = {
+        path: content?.path || 'Unknown path',
+        githubUrl: content?.githubUrl || 'No URL available',
+        language: content?.language || 'unknown',
+        role: content?.role || 'unknown',
+        directoryContext: content?.directoryContext || '',
+        metadata: {
+          size: content?.metadata?.size || '0 KB',
+          created: content?.metadata?.created || 'Unknown',
+          modified: content?.metadata?.modified || 'Unknown',
+          permissions: content?.metadata?.permissions || 'Unknown'
+        },
+        contentType: content?.contentType || 'unknown',
+        dependencies: Array.isArray(content?.dependencies) ? content.dependencies : [],
+        content: typeof content?.content === 'string' ? content.content : 'No content available'
+      };
+
+      const separator = '═'.repeat(80);
+      const sectionSeparator = '─'.repeat(40);
+      const bullet = '■';
+
+      return `${separator}
+${bullet} FILE INFORMATION
+${sectionSeparator}
+Path: ${safeContent.path}
+GitHub URL: ${safeContent.githubUrl}
+Language: ${safeContent.language}
+Role: ${safeContent.role}
+Directory Context: ${safeContent.directoryContext}
+
+${bullet} METADATA
+${sectionSeparator}
+Size: ${safeContent.metadata.size}
+Created: ${safeContent.metadata.created}
+Modified: ${safeContent.metadata.modified}
+Permissions: ${safeContent.metadata.permissions}
+
+${bullet} ANALYSIS
+${sectionSeparator}
+Content Type: ${safeContent.contentType}
+Dependencies: ${safeContent.dependencies.length > 0 ? 
+  '\n' + safeContent.dependencies.map(dep => `  - ${dep}`).join('\n') : 
+  'None'}
+
+${bullet} FILE CONTENT
+${sectionSeparator}
+${safeContent.content}
+
+${separator}\n\n`;
+    } catch (error) {
+      console.error('Error formatting content:', error);
+      return `Error formatting file content: ${error instanceof Error ? error.message : 'Unknown error'}\n\n`;
+    }
   }
 
   formatContentOutput(contents: FileContent[]): string {
-    return contents.map(content => this.formatContent(content)).join('\n');
+    try {
+      if (!Array.isArray(contents)) {
+        throw new Error('Invalid contents array provided');
+      }
+      return contents.map(content => this.formatContent(content)).join('');
+    } catch (error) {
+      console.error('Error in formatContentOutput:', error);
+      return `Error formatting output: ${error instanceof Error ? error.message : 'Unknown error'}`;
+    }
   }
 }

@@ -11,29 +11,39 @@ export class ContentProcessor implements IContentProcessor, IContentTypeDetector
   }
 
   async processFile(file: string, basePath: string, repoUrl: string): Promise<FileContent> {
-    const filePath = this.fileSystem.join(basePath, file);
-    const content = await this.fileSystem.readFile(filePath, 'utf-8');
-    const stats = await this.fileSystem.stat(filePath);
-    const repoUrlParts = repoUrl.split('github.com/');
-    const fullGithubUrl = `https://github.com/${repoUrlParts[1]}/blob/main/${file}`;
+    try {
+      const filePath = this.fileSystem.join(basePath, file);
+      const content = await this.fileSystem.readFile(filePath, 'utf-8');
+      const stats = await this.fileSystem.stat(filePath);
 
-    const metadata = this.extractMetadata(stats);
+      // Safe construction of GitHub URL
+      const repoUrlParts = repoUrl.split('github.com/');
+      const fullGithubUrl = repoUrlParts.length > 1 ? 
+        `https://github.com/${repoUrlParts[1]}/blob/main/${file}` : 
+        'Invalid GitHub URL';
 
-    const fileExt = this.fileSystem.extname(file);
-    const imports = fileExt === '.ts' || fileExt === '.js' ? 
-      content.match(/^import.*from.*$/gm) || [] : [];
+      const metadata = this.extractMetadata(stats);
+      const fileExt = this.fileSystem.extname(file).toLowerCase();
 
-    return {
-      path: file,
-      content,
-      githubUrl: fullGithubUrl,
-      metadata,
-      language: fileExt.slice(1) || 'unknown',
-      role: file.includes('test') || file.includes('spec') ? 'test' : 'source',
-      directoryContext: this.fileSystem.dirname(file),
-      dependencies: imports,
-      contentType: this.determineContentType(file)
-    };
+      // Extract imports only for JavaScript/TypeScript files
+      const imports = (fileExt === '.ts' || fileExt === '.js' || fileExt === '.tsx' || fileExt === '.jsx') ? 
+        (content.match(/^import.*from.*$/gm) || []) : [];
+
+      return {
+        path: file,
+        content: content || '',
+        githubUrl: fullGithubUrl,
+        metadata,
+        language: fileExt.slice(1) || 'unknown',
+        role: this.determineRole(file),
+        directoryContext: this.fileSystem.dirname(file),
+        dependencies: imports,
+        contentType: this.determineContentType(file)
+      };
+    } catch (error) {
+      console.error(`Error processing file ${file}:`, error);
+      throw error;
+    }
   }
 
   extractMetadata(stats: { size: number; birthtime: Date; mtime: Date; mode: number }): {
@@ -42,27 +52,70 @@ export class ContentProcessor implements IContentProcessor, IContentTypeDetector
     modified: string;
     permissions: string;
   } {
-    return {
-      size: `${(stats.size / 1024).toFixed(2)} KB`,
-      created: stats.birthtime.toISOString(),
-      modified: stats.mtime.toISOString(),
-      permissions: stats.mode.toString(8)
-    };
+    try {
+      return {
+        size: `${(stats.size / 1024).toFixed(2)} KB`,
+        created: stats.birthtime.toISOString(),
+        modified: stats.mtime.toISOString(),
+        permissions: stats.mode.toString(8)
+      };
+    } catch (error) {
+      console.error('Error extracting metadata:', error);
+      return {
+        size: '0 KB',
+        created: new Date().toISOString(),
+        modified: new Date().toISOString(),
+        permissions: '644'
+      };
+    }
   }
 
   determineContentType(file: string): string {
-    if (file.endsWith('.test.ts') || file.endsWith('.spec.ts')) {
-      return 'test';
+    try {
+      const lowercasePath = file.toLowerCase();
+
+      if (lowercasePath.includes('.test.') || lowercasePath.includes('.spec.')) {
+        return 'test';
+      }
+      if (lowercasePath.includes('/components/')) {
+        return 'component';
+      }
+      if (lowercasePath.includes('/services/')) {
+        return 'service';
+      }
+      if (lowercasePath.includes('/utils/')) {
+        return 'utility';
+      }
+      if (lowercasePath.includes('/interfaces/')) {
+        return 'interface';
+      }
+      if (lowercasePath.includes('/types/')) {
+        return 'type';
+      }
+      return 'source';
+    } catch (error) {
+      console.error('Error determining content type:', error);
+      return 'unknown';
     }
-    if (file.includes('/components/')) {
-      return 'component';
+  }
+
+  private determineRole(file: string): string {
+    try {
+      const lowercasePath = file.toLowerCase();
+
+      if (lowercasePath.includes('.test.') || lowercasePath.includes('.spec.')) {
+        return 'test';
+      }
+      if (lowercasePath.includes('interface') || lowercasePath.includes('.d.ts')) {
+        return 'interface';
+      }
+      if (lowercasePath.includes('type') || lowercasePath.includes('.types.')) {
+        return 'type';
+      }
+      return 'source';
+    } catch (error) {
+      console.error('Error determining role:', error);
+      return 'unknown';
     }
-    if (file.includes('/services/')) {
-      return 'service';
-    }
-    if (file.includes('/utils/')) {
-      return 'utility';
-    }
-    return 'source';
   }
 }

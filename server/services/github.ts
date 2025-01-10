@@ -60,6 +60,18 @@ export async function analyzeGitHubRepo(url: string, directoryPath?: string) {
       const stats = await fs.stat(path.join(targetPath, file));
       totalSize += stats.size;
 
+      // Enhanced metadata collection
+      const fileMetadata = {
+        size: stats.size,
+        created: stats.birthtime,
+        modified: stats.mtime,
+        accessed: stats.atime,
+        isSymlink: stats.isSymbolicLink(),
+        permissions: stats.mode,
+        userId: stats.uid,
+        groupId: stats.gid
+      };
+
       // Get file extension (default to 'no extension' for files without one)
       const ext = path.extname(file).toLowerCase() || 'no extension';
 

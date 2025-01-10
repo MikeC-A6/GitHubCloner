@@ -1,10 +1,10 @@
-import { getPatterns } from '../patterns';
-import { RepositoryManager } from './repository-manager';
-import { FileAnalyzer } from './file-analyzer';
-import { PatternMatcher } from './pattern-matcher';
-import { FileSystemError } from './interfaces/file-system';
-import type { AnalysisResult } from './interfaces';
-import type { IRepositoryAnalyzer } from './interfaces/repository';
+import { getPatterns } from '../patterns.js';
+import { RepositoryManager } from './repository-manager.js';
+import { FileAnalyzer } from './file-analyzer.js';
+import { PatternMatcher } from './pattern-matcher.js';
+import { FileSystemError } from './interfaces/file-system.js';
+import type { AnalysisResult } from './interfaces.js';
+import type { IRepositoryAnalyzer } from './interfaces/repository.js';
 
 export class RepositoryAnalyzer implements IRepositoryAnalyzer {
   constructor(

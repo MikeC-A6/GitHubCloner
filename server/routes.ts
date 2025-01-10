@@ -1,13 +1,13 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { analyzeGitHubRepo as analyzeRepository, downloadRepository } from "./services/github";
-import { getPatterns, updatePatterns, resetToDefaultPatterns } from "./services/patterns";
+import { analyzeGitHubRepo, downloadRepository } from "./services/github/index.js";
+import { getPatterns, updatePatterns, resetToDefaultPatterns } from "./services/patterns.js";
 
 export function registerRoutes(app: Express): Server {
   app.post("/api/analyze", async (req, res) => {
     try {
       const { githubUrl, directoryPath } = req.body;
-      const result = await analyzeRepository(githubUrl, directoryPath);
+      const result = await analyzeGitHubRepo(githubUrl, directoryPath);
       res.json(result);
     } catch (error: any) {
       res.status(400).send(error.message);

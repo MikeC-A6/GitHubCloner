@@ -1,11 +1,11 @@
 // Re-export functionality from individual service files
-import { RepositoryAnalyzer } from './repository-analyzer';
-import { RepositoryDownloader } from './repository-downloader';
-import { FileAnalyzer } from './file-analyzer';
-import { PatternMatcher } from './pattern-matcher';
-import { RepositoryManager } from './repository-manager';
-import { ContentManager } from './content-manager';
-import { FileSystem } from '../file-system';
+import { RepositoryAnalyzer } from './repository-analyzer.js';
+import { RepositoryDownloader } from './repository-downloader.js';
+import { FileAnalyzer } from './file-analyzer.js';
+import { PatternMatcher } from './pattern-matcher.js';
+import { RepositoryManager } from './repository-manager.js';
+import { ContentManager } from './content-manager.js';
+import { FileSystem } from '../file-system.js';
 
 // Create shared instances
 const fileSystem = new FileSystem();
@@ -28,12 +28,12 @@ const repositoryDownloader = new RepositoryDownloader(
   contentManager
 );
 
-// Export the public API
-export const analyzeGitHubRepo = async (url: string, directoryPath?: string) =>
+// Export with names matching the original github.ts functionality
+export const analyzeGitHubRepo = (url: string, directoryPath?: string) =>
   repositoryAnalyzer.analyzeRepository(url, directoryPath);
 
-export const downloadRepository = async (url: string, directoryPath?: string) =>
+export const downloadRepository = (url: string, directoryPath?: string) =>
   repositoryDownloader.downloadRepository(url, directoryPath);
 
 // Re-export types
-export type { AnalysisResult, FileContent } from './interfaces';
+export type { AnalysisResult, FileContent } from './interfaces.js';

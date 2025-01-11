@@ -15,8 +15,10 @@ interface RepositoryFormProps {
 }
 
 interface FormValues {
+  sourceType: 'github' | 'local';
   githubUrl: string;
   directoryPath: string;
+  localFiles?: FileList;
 }
 
 export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: RepositoryFormProps) {
@@ -26,6 +28,7 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
 
   const form = useForm<FormValues>({
     defaultValues: {
+      sourceType: 'github',
       githubUrl: "",
       directoryPath: "",
     },
@@ -92,6 +95,39 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <FormField
+          control={form.control}
+          name="sourceType"
+          render={({ field }) => (
+            <FormItem className="space-y-3">
+              <FormLabel>Source Type</FormLabel>
+              <FormControl>
+                <div className="flex space-x-4">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      value="github"
+                      checked={field.value === 'github'}
+                      onChange={(e) => field.onChange(e.target.value)}
+                      className="form-radio"
+                    />
+                    <span>GitHub Repository</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      value="local"
+                      checked={field.value === 'local'}
+                      onChange={(e) => field.onChange(e.target.value)}
+                      className="form-radio"
+                    />
+                    <span>Local Files</span>
+                  </label>
+                </div>
+              </FormControl>
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="githubUrl"

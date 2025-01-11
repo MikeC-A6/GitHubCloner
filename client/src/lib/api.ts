@@ -1,8 +1,10 @@
 // Types for requests and responses
 interface AnalyzeRequest {
-  githubUrl: string;
+  sourceType: 'github' | 'local';
+  githubUrl?: string;
   directoryPath?: string;
   patterns?: string;
+  files?: FileList;
 }
 
 interface FileTypeStats {

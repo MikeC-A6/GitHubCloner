@@ -6,12 +6,21 @@ import { getPatterns, updatePatterns, resetToDefaultPatterns } from "./services/
 export function registerRoutes(app: Express): Server {
   app.post("/api/analyze", async (req, res) => {
     try {
-      const { githubUrl, directoryPath } = req.body;
-      if (!githubUrl) {
-        return res.status(400).json({ message: "GitHub URL is required" });
+      const { sourceType, githubUrl, directoryPath, files } = req.body;
+      
+      if (sourceType === 'github') {
+        if (!githubUrl) {
+          return res.status(400).json({ message: "GitHub URL is required" });
+        }
+        const result = await analyzeGitHubRepo(githubUrl, directoryPath);
+        res.json(result);
+      } else {
+        if (!files || files.length === 0) {
+          return res.status(400).json({ message: "Files are required" });
+        }
+        const result = await analyzeLocalFiles(files);
+        res.json(result);
       }
-      const result = await analyzeGitHubRepo(githubUrl, directoryPath);
-      res.json(result);
     } catch (error: any) {
       console.error('Error analyzing repository:', error);
       const statusCode = error.status || error.statusCode || 500;

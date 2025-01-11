@@ -18,7 +18,7 @@ interface RepoStats {
 
 interface AnalysisData {
   stats: RepoStats;
-  repoUrl: string;
+  repoUrl?: string;
   directoryPath?: string;
 }
 
@@ -33,13 +33,26 @@ export default function Home() {
     return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
   };
 
+  const handleAnalyzeComplete = (stats?: RepoStats, repoUrl?: string, directoryPath?: string) => {
+    setAnalyzing(false);
+    if (stats) {
+      setAnalysisData({
+        stats,
+        repoUrl,
+        directoryPath,
+      });
+    } else {
+      setAnalysisData(null);
+    }
+  };
+
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-background to-muted/20">
       <div className="max-w-3xl mx-auto p-6 space-y-8">
         <div className="text-center">
           <div className="flex items-center justify-center gap-4 bg-muted/80 text-foreground px-8 py-4 rounded-xl text-3xl font-bold w-full">
             <Github className="w-8 h-8" />
-            <span>Convert GitHub Code to Text</span>
+            <span>Repository Analysis Tool</span>
           </div>
         </div>
 
@@ -64,12 +77,7 @@ export default function Home() {
                 setAnalyzing(true);
                 setAnalysisData(null);
               }}
-              onAnalyzeComplete={(stats, repoUrl, directoryPath) => {
-                setAnalyzing(false);
-                if (stats && repoUrl) {
-                  setAnalysisData({ stats, repoUrl, directoryPath });
-                }
-              }}
+              onAnalyzeComplete={handleAnalyzeComplete}
             />
           </CardContent>
         </Card>
@@ -91,6 +99,23 @@ export default function Home() {
                   <div className="text-sm text-muted-foreground">Total Size</div>
                 </div>
               </div>
+
+              {analysisData.stats.fileTypes && analysisData.stats.fileTypes.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold mb-3">File Types</h3>
+                  <div className="grid gap-3">
+                    {analysisData.stats.fileTypes.map((type) => (
+                      <div key={type.extension} className="flex justify-between items-center bg-muted/30 p-3 rounded-lg">
+                        <span className="font-medium">{type.extension || 'No extension'}</span>
+                        <div className="flex gap-4">
+                          <span className="text-sm text-muted-foreground">{type.count} files</span>
+                          <span className="text-sm text-muted-foreground">{formatBytes(type.totalBytes)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

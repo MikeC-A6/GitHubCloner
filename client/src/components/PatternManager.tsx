@@ -199,6 +199,7 @@ export default function PatternManager({
             </p>
           </div>
         )}
+
         <Alert className="bg-primary/5 border-primary/10">
           <AlertDescription>
             Customize which files to exclude before downloading. This helps reduce the repository size and remove unnecessary files.
@@ -324,7 +325,7 @@ export default function PatternManager({
           <div className="flex-shrink-0 ml-4">
             <Button
               onClick={() => downloadMutation.mutate()}
-              disabled={disabled || downloadMutation.isPending}
+              disabled={disabled || downloadMutation.isPending || (!repoUrl && !selectedFiles)}
               size="lg"
               className="gap-2 whitespace-nowrap"
             >

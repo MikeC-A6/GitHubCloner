@@ -37,24 +37,30 @@ export function registerRoutes(app: Express): Server {
     try {
       const { sourceType, githubUrl, directoryPath } = req.body;
 
-      let result;
       if (sourceType === 'github') {
         if (!githubUrl) {
           return res.status(400).json({ message: "GitHub URL is required" });
         }
-        result = await downloadRepository(githubUrl, directoryPath);
+        const result = await downloadRepository(githubUrl, directoryPath);
+
+        // Set proper headers for text file download
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+        res.send(result.content);
       } else {
         if (!req.files || req.files.length === 0) {
           return res.status(400).json({ message: "Files are required" });
         }
-        // Use the same local analyzer for downloading
-        result = await analyzeLocalFiles(req.files as Express.Multer.File[]);
-      }
+        // For local files, combine them into a single text file
+        const files = req.files as Express.Multer.File[];
+        const content = files.map(file => {
+          return `// File: ${file.originalname}\n${file.buffer.toString('utf-8')}\n\n`;
+        }).join('');
 
-      // Set proper headers for text file download
-      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="${result.filename || 'repository.txt'}"`);
-      res.send(result.content || JSON.stringify(result, null, 2));
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename="local_files.txt"');
+        res.send(content);
+      }
     } catch (error: any) {
       console.error('Error downloading repository:', error);
       const statusCode = error.status || error.statusCode || 500;

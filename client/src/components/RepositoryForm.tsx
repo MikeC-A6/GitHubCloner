@@ -177,7 +177,12 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
                       }}
                       className="form-radio"
                     />
-                    <span>Local Files</span>
+                    <span className="flex items-center gap-2">
+                      Local Files
+                      <span className="inline-flex items-center rounded-md bg-yellow-400/10 px-2 py-1 text-xs font-medium text-yellow-500 ring-1 ring-inset ring-yellow-400/20">
+                        BETA
+                      </span>
+                    </span>
                   </label>
                 </div>
               </FormControl>

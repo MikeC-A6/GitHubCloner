@@ -10,7 +10,7 @@ import { useState, useRef } from "react";
 
 interface RepositoryFormProps {
   onAnalyzeStart: () => void;
-  onAnalyzeComplete: (stats?: { fileCount: number; totalSizeBytes: number; fileTypes: any[] }, repoUrl?: string, directoryPath?: string, selectedFiles?: FileList) => void;
+  onAnalyzeComplete: (stats?: { fileCount: number; totalSizeBytes: number; fileTypes: any[] }, repoUrl?: string, directoryPath?: string, selectedFiles?: FileList | null) => void;
 }
 
 interface FormValues {
@@ -25,6 +25,8 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
   const [analyzeStage, setAnalyzeStage] = useState<string>("");
   const directoryInputRef = useRef<HTMLInputElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const maxFileSize = 50 * 1024 * 1024; // 50MB per file
+  const maxTotalSize = maxFileSize * 10; // 500MB total
 
   const form = useForm<FormValues>({
     defaultValues: {
@@ -47,9 +49,29 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
           formData.append('directoryPath', values.directoryPath);
         }
       } else if (selectedFiles) {
+        let totalSize = 0;
+        // Check file sizes before uploading
+        for (let i = 0; i < selectedFiles.length; i++) {
+          const file = selectedFiles[i];
+          if (file.size > maxFileSize) {
+            throw new Error(`File ${file.name} exceeds the maximum size limit of 50MB`);
+          }
+          totalSize += file.size;
+        }
+
+        if (totalSize > maxTotalSize) {
+          throw new Error("Total file size exceeds 500MB limit");
+        }
+
         // Append each file from the selected directory
         for (let i = 0; i < selectedFiles.length; i++) {
           formData.append('files', selectedFiles[i]);
+          // Update progress based on number of files processed
+          const progress = Math.min(90, 30 + (i / selectedFiles.length) * 60);
+          setAnalyzeProgress(progress);
+          setAnalyzeStage(`Processing file ${i + 1} of ${selectedFiles.length}...`);
+          // Allow UI to update
+          await new Promise(resolve => setTimeout(resolve, 0));
         }
       }
 
@@ -59,32 +81,15 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
       });
 
       if (!response.ok) {
-        throw new Error(await response.text());
+        const errorText = await response.text();
+        throw new Error(errorText);
       }
 
       return response.json();
     },
     onMutate: () => {
       setAnalyzeProgress(10);
-      setAnalyzeStage("Initializing repository analysis...");
-
-      // For very small repos, we'll use shorter intervals
-      const baseDelay = 200;
-
-      setTimeout(() => {
-        setAnalyzeProgress(30);
-        setAnalyzeStage(sourceType === 'github' ? "Cloning repository..." : "Reading directory contents...");
-      }, baseDelay);
-
-      setTimeout(() => {
-        setAnalyzeProgress(60);
-        setAnalyzeStage("Analyzing files...");
-      }, baseDelay * 2);
-
-      setTimeout(() => {
-        setAnalyzeProgress(90);
-        setAnalyzeStage("Calculating statistics...");
-      }, baseDelay * 3);
+      setAnalyzeStage("Initializing analysis...");
     },
     onSuccess: (data) => {
       setAnalyzeProgress(100);
@@ -106,7 +111,7 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
         setAnalyzeStage("");
       }, 500);
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       setAnalyzeProgress(0);
       setAnalyzeStage("");
       toast({
@@ -216,7 +221,7 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
               <FormItem>
                 <FormLabel>Select Directory</FormLabel>
                 <FormDescription>
-                  Choose a local directory to analyze its contents
+                  Choose a local directory to analyze its contents (max 500MB total, 50MB per file)
                 </FormDescription>
                 <FormControl>
                   <div className="relative">

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getPatterns, updatePatterns, resetPatterns, downloadRepository } from "@/lib/api";
+import { getPatterns, updatePatterns, resetPatterns } from "@/lib/api";
 import { ChevronDown, ChevronUp, Download, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -74,24 +74,57 @@ export default function PatternManager({ disabled = false, fileTypes = [], repoU
   });
 
   const downloadMutation = useMutation({
-    mutationFn: downloadRepository,
+    mutationFn: async () => {
+      const formData = new FormData();
+      formData.append('sourceType', repoUrl ? 'github' : 'local');
+
+      if (repoUrl) {
+        formData.append('githubUrl', repoUrl);
+        if (directoryPath) {
+          formData.append('directoryPath', directoryPath);
+        }
+      }
+
+      const response = await fetch('/api/download', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      // Get the filename from the Content-Disposition header
+      const contentDisposition = response.headers.get('Content-Disposition');
+      const filenameMatch = contentDisposition?.match(/filename="([^"]+)"/);
+      const filename = filenameMatch?.[1] || 'repository.txt';
+
+      // Get the content directly as text
+      const content = await response.text();
+
+      // Create a blob from the text content
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    },
     onMutate: () => {
-      // Start at 50% to show processing
       setProgress(50);
     },
     onSuccess: () => {
-      // Complete immediately
       setProgress(100);
-      // Reset after showing completion
       setTimeout(() => setProgress(0), 500);
-
       toast({
         title: "Repository downloaded successfully",
         description: "Check your downloads folder for the repository content",
       });
     },
     onError: (error: Error) => {
-      // Reset on error
       setProgress(0);
       toast({
         title: "Failed to download repository",
@@ -126,27 +159,6 @@ export default function PatternManager({ disabled = false, fileTypes = [], repoU
 
       updateMutation.mutate(newPatterns);
       return newSelected;
-    });
-  };
-
-  const handleDownload = () => {
-    if (!repoUrl) return;
-
-    const extensionPatterns = selectedExtensions
-      .map(ext => {
-        const cleanExt = ext.startsWith('.') ? ext.substring(1) : ext;
-        return `*.${cleanExt}`;
-      })
-      .join('\n');
-
-    const allPatterns = customPatterns
-      ? `${customPatterns}\n${extensionPatterns}`
-      : extensionPatterns;
-
-    downloadMutation.mutate({
-      githubUrl: repoUrl,
-      directoryPath,
-      patterns: allPatterns
     });
   };
 
@@ -299,8 +311,8 @@ export default function PatternManager({ disabled = false, fileTypes = [], repoU
           </div>
           <div className="flex-shrink-0 ml-4">
             <Button
-              onClick={handleDownload}
-              disabled={disabled || !repoUrl || downloadMutation.isPending}
+              onClick={() => downloadMutation.mutate()}
+              disabled={disabled || downloadMutation.isPending}
               size="lg"
               className="gap-2 whitespace-nowrap"
             >

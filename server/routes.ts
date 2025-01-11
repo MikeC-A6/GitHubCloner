@@ -33,19 +33,28 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.post("/api/download", async (req, res) => {
+  app.post("/api/download", upload.array('files'), async (req, res) => {
     try {
-      const { githubUrl, directoryPath } = req.body;
-      if (!githubUrl) {
-        return res.status(400).json({ message: "GitHub URL is required" });
-      }
+      const { sourceType, githubUrl, directoryPath } = req.body;
 
-      const result = await downloadRepository(githubUrl, directoryPath);
+      let result;
+      if (sourceType === 'github') {
+        if (!githubUrl) {
+          return res.status(400).json({ message: "GitHub URL is required" });
+        }
+        result = await downloadRepository(githubUrl, directoryPath);
+      } else {
+        if (!req.files || req.files.length === 0) {
+          return res.status(400).json({ message: "Files are required" });
+        }
+        // Use the same local analyzer for downloading
+        result = await analyzeLocalFiles(req.files as Express.Multer.File[]);
+      }
 
       // Set proper headers for text file download
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
-      res.send(result.content);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.filename || 'repository.txt'}"`);
+      res.send(result.content || JSON.stringify(result, null, 2));
     } catch (error: any) {
       console.error('Error downloading repository:', error);
       const statusCode = error.status || error.statusCode || 500;

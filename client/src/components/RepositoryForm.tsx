@@ -3,7 +3,6 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormDescription } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
-import { analyzeRepository } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { FolderIcon, Github, Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
@@ -52,7 +51,6 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
         for (let i = 0; i < selectedFiles.length; i++) {
           formData.append('files', selectedFiles[i]);
         }
-        formData.append('directoryPath', values.directoryPath);
       }
 
       const response = await fetch('/api/analyze', {
@@ -96,7 +94,11 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
         description: "You can now customize and download the repository content",
       });
       const values = form.getValues();
-      onAnalyzeComplete(data.stats, values.githubUrl, values.directoryPath);
+      onAnalyzeComplete(
+        data.stats,
+        values.sourceType === 'github' ? values.githubUrl : undefined,
+        values.directoryPath
+      );
 
       setTimeout(() => {
         setAnalyzeProgress(0);
@@ -209,7 +211,6 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
           <FormField
             control={form.control}
             name="directoryPath"
-            rules={{ required: "Please select a directory to analyze" }}
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Select Directory</FormLabel>
@@ -221,6 +222,7 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
                     <input
                       type="file"
                       ref={directoryInputRef}
+                      // @ts-ignore
                       webkitdirectory=""
                       directory=""
                       style={{ display: 'none' }}
@@ -242,33 +244,6 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
                       <FolderIcon className="w-5 h-5" />
                       {field.value ? field.value : "Browse Directory"}
                     </Button>
-                  </div>
-                </FormControl>
-              </FormItem>
-            )}
-          />
-        )}
-
-        {sourceType === 'github' && (
-          <FormField
-            control={form.control}
-            name="directoryPath"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Directory Path</FormLabel>
-                <FormDescription>
-                  Optionally specify a subdirectory to analyze. Leave empty to process the entire repository
-                </FormDescription>
-                <FormControl>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                      <FolderIcon className="w-5 h-5 text-muted-foreground/70" />
-                    </div>
-                    <Input 
-                      placeholder="e.g., src/components"
-                      className="pl-10"
-                      {...field}
-                    />
                   </div>
                 </FormControl>
               </FormItem>

@@ -5,8 +5,18 @@ import { analyzeGitHubRepo, downloadRepository } from "./services/github/index.j
 import { analyzeLocalFiles } from "./services/local/local-analyzer.js";
 import { getPatterns, updatePatterns, resetToDefaultPatterns } from "./services/patterns.js";
 
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB per file
+const MAX_FILES = 1000; // Maximum number of files to process
+
 export function registerRoutes(app: Express): Server {
-  const upload = multer({ storage: multer.memoryStorage() });
+  // Configure multer with limits
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: MAX_FILE_SIZE,
+      files: MAX_FILES,
+    }
+  });
 
   app.post("/api/analyze", upload.array('files'), async (req, res) => {
     try {
@@ -22,13 +32,35 @@ export function registerRoutes(app: Express): Server {
         if (!req.files || req.files.length === 0) {
           return res.status(400).json({ message: "Files are required" });
         }
+
+        // Check total size of all files
+        const totalSize = (req.files as Express.Multer.File[]).reduce((acc, file) => acc + file.size, 0);
+        if (totalSize > MAX_FILE_SIZE * 10) { // Allow up to 500MB total
+          return res.status(413).json({ 
+            message: "Total file size too large. Please select a smaller directory or fewer files." 
+          });
+        }
+
         const result = await analyzeLocalFiles(req.files as Express.Multer.File[]);
         res.json(result);
       }
     } catch (error: any) {
       console.error('Error analyzing repository:', error);
       const statusCode = error.status || error.statusCode || 500;
-      const message = error.message || "Failed to analyze repository";
+      let message = error.message || "Failed to analyze repository";
+
+      // Handle multer errors
+      if (error instanceof multer.MulterError) {
+        if (error.code === 'LIMIT_FILE_SIZE') {
+          message = `File too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB`;
+          return res.status(413).json({ message });
+        }
+        if (error.code === 'LIMIT_FILE_COUNT') {
+          message = `Too many files. Maximum is ${MAX_FILES} files`;
+          return res.status(413).json({ message });
+        }
+      }
+
       res.status(statusCode).json({ message });
     }
   });
@@ -43,7 +75,6 @@ export function registerRoutes(app: Express): Server {
         }
         const result = await downloadRepository(githubUrl, directoryPath);
 
-        // Set proper headers for text file download
         res.setHeader('Content-Type', 'text/plain; charset=utf-8');
         res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
         res.send(result.content);
@@ -51,7 +82,6 @@ export function registerRoutes(app: Express): Server {
         if (!req.files || req.files.length === 0) {
           return res.status(400).json({ message: "Files are required" });
         }
-        // For local files, combine them into a single text file
         const files = req.files as Express.Multer.File[];
         const content = files.map(file => {
           return `// File: ${file.originalname}\n${file.buffer.toString('utf-8')}\n\n`;

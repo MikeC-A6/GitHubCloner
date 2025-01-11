@@ -20,6 +20,7 @@ interface AnalysisData {
   stats: RepoStats;
   repoUrl?: string;
   directoryPath?: string;
+  selectedFiles?: FileList;
 }
 
 export default function Home() {
@@ -33,13 +34,14 @@ export default function Home() {
     return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
   };
 
-  const handleAnalyzeComplete = (stats?: RepoStats, repoUrl?: string, directoryPath?: string) => {
+  const handleAnalyzeComplete = (stats?: RepoStats, repoUrl?: string, directoryPath?: string, selectedFiles?: FileList) => {
     setAnalyzing(false);
     if (stats) {
       setAnalysisData({
         stats,
         repoUrl,
         directoryPath,
+        selectedFiles
       });
     } else {
       setAnalysisData(null);
@@ -125,6 +127,7 @@ export default function Home() {
           fileTypes={analysisData?.stats.fileTypes}
           repoUrl={analysisData?.repoUrl}
           directoryPath={analysisData?.directoryPath}
+          selectedFiles={analysisData?.selectedFiles}
         />
       </div>
     </div>

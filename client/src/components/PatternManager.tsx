@@ -20,9 +20,16 @@ interface PatternManagerProps {
   fileTypes?: Array<{ extension: string; count: number; totalBytes: number }>;
   repoUrl?: string;
   directoryPath?: string;
+  selectedFiles?: FileList | null;
 }
 
-export default function PatternManager({ disabled = false, fileTypes = [], repoUrl, directoryPath }: PatternManagerProps) {
+export default function PatternManager({ 
+  disabled = false, 
+  fileTypes = [], 
+  repoUrl, 
+  directoryPath,
+  selectedFiles 
+}: PatternManagerProps) {
   const [customPatterns, setCustomPatterns] = useState("");
   const [selectedExtensions, setSelectedExtensions] = useState<string[]>([]);
   const [showCurrentPatterns, setShowCurrentPatterns] = useState(false);
@@ -83,6 +90,11 @@ export default function PatternManager({ disabled = false, fileTypes = [], repoU
         if (directoryPath) {
           formData.append('directoryPath', directoryPath);
         }
+      } else if (selectedFiles) {
+        // Append each file from the selected directory
+        for (let i = 0; i < selectedFiles.length; i++) {
+          formData.append('files', selectedFiles[i]);
+        }
       }
 
       const response = await fetch('/api/download', {
@@ -142,7 +154,7 @@ export default function PatternManager({ disabled = false, fileTypes = [], repoU
 
   const handleExtensionToggle = (extension: string, checked: boolean) => {
     setSelectedExtensions(prev => {
-      const newSelected = checked
+      const newSelected = checked 
         ? [...prev, extension]
         : prev.filter(ext => ext !== extension);
 

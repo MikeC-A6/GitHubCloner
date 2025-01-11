@@ -10,7 +10,7 @@ import { useState, useRef } from "react";
 
 interface RepositoryFormProps {
   onAnalyzeStart: () => void;
-  onAnalyzeComplete: (stats?: { fileCount: number; totalSizeBytes: number; fileTypes: any[] }, repoUrl?: string, directoryPath?: string) => void;
+  onAnalyzeComplete: (stats?: { fileCount: number; totalSizeBytes: number; fileTypes: any[] }, repoUrl?: string, directoryPath?: string, selectedFiles?: FileList) => void;
 }
 
 interface FormValues {
@@ -97,7 +97,8 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
       onAnalyzeComplete(
         data.stats,
         values.sourceType === 'github' ? values.githubUrl : undefined,
-        values.directoryPath
+        values.directoryPath,
+        selectedFiles
       );
 
       setTimeout(() => {
@@ -195,7 +196,7 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
                     <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                       <Github className="w-5 h-5 text-muted-foreground/70" />
                     </div>
-                    <Input 
+                    <Input
                       placeholder="https://github.com/username/repository"
                       className="pl-10"
                       {...field}
@@ -261,8 +262,8 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
           </div>
         )}
 
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           className="w-full gap-2"
           size="lg"
           disabled={analyzeMutation.isPending}

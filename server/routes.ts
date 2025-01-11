@@ -1,13 +1,16 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import multer from "multer";
 import { analyzeGitHubRepo, downloadRepository } from "./services/github/index.js";
 import { analyzeLocalFiles } from "./services/local/local-analyzer.js";
 import { getPatterns, updatePatterns, resetToDefaultPatterns } from "./services/patterns.js";
 
 export function registerRoutes(app: Express): Server {
-  app.post("/api/analyze", async (req, res) => {
+  const upload = multer({ storage: multer.memoryStorage() });
+
+  app.post("/api/analyze", upload.array('files'), async (req, res) => {
     try {
-      const { sourceType, githubUrl, directoryPath, files } = req.body;
+      const { sourceType, githubUrl, directoryPath } = req.body;
 
       if (sourceType === 'github') {
         if (!githubUrl) {
@@ -16,10 +19,10 @@ export function registerRoutes(app: Express): Server {
         const result = await analyzeGitHubRepo(githubUrl, directoryPath);
         res.json(result);
       } else {
-        if (!files || files.length === 0) {
+        if (!req.files || req.files.length === 0) {
           return res.status(400).json({ message: "Files are required" });
         }
-        const result = await analyzeLocalFiles(files);
+        const result = await analyzeLocalFiles(req.files as Express.Multer.File[]);
         res.json(result);
       }
     } catch (error: any) {

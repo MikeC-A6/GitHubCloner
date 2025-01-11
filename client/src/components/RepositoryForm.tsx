@@ -25,6 +25,7 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
   const [analyzeProgress, setAnalyzeProgress] = useState(0);
   const [analyzeStage, setAnalyzeStage] = useState<string>("");
   const directoryInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
 
   const form = useForm<FormValues>({
     defaultValues: {
@@ -37,7 +38,34 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
   const sourceType = form.watch('sourceType');
 
   const analyzeMutation = useMutation({
-    mutationFn: analyzeRepository,
+    mutationFn: async (values: FormValues) => {
+      const formData = new FormData();
+      formData.append('sourceType', values.sourceType);
+
+      if (values.sourceType === 'github') {
+        formData.append('githubUrl', values.githubUrl);
+        if (values.directoryPath) {
+          formData.append('directoryPath', values.directoryPath);
+        }
+      } else if (selectedFiles) {
+        // Append each file from the selected directory
+        for (let i = 0; i < selectedFiles.length; i++) {
+          formData.append('files', selectedFiles[i]);
+        }
+        formData.append('directoryPath', values.directoryPath);
+      }
+
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      return response.json();
+    },
     onMutate: () => {
       setAnalyzeProgress(10);
       setAnalyzeStage("Initializing repository analysis...");
@@ -94,6 +122,14 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
   };
 
   const onSubmit = (values: FormValues) => {
+    if (values.sourceType === 'local' && !selectedFiles) {
+      toast({
+        title: "No directory selected",
+        description: "Please select a directory to analyze",
+        variant: "destructive",
+      });
+      return;
+    }
     onAnalyzeStart();
     analyzeMutation.mutate(values);
   };
@@ -114,7 +150,10 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
                       type="radio"
                       value="github"
                       checked={field.value === 'github'}
-                      onChange={(e) => field.onChange(e.target.value)}
+                      onChange={(e) => {
+                        field.onChange(e.target.value);
+                        setSelectedFiles(null);
+                      }}
                       className="form-radio"
                     />
                     <span>GitHub Repository</span>
@@ -124,7 +163,10 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
                       type="radio"
                       value="local"
                       checked={field.value === 'local'}
-                      onChange={(e) => field.onChange(e.target.value)}
+                      onChange={(e) => {
+                        field.onChange(e.target.value);
+                        form.setValue('githubUrl', '');
+                      }}
                       className="form-radio"
                     />
                     <span>Local Files</span>
@@ -185,7 +227,7 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
                       onChange={(e) => {
                         const files = e.target.files;
                         if (files && files.length > 0) {
-                          // Use the parent directory path
+                          setSelectedFiles(files);
                           const path = files[0].webkitRelativePath.split('/')[0];
                           field.onChange(path);
                         }

@@ -7,7 +7,7 @@ import { analyzeRepository } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { FolderIcon, Github, Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 interface RepositoryFormProps {
   onAnalyzeStart: () => void;
@@ -18,13 +18,13 @@ interface FormValues {
   sourceType: 'github' | 'local';
   githubUrl: string;
   directoryPath: string;
-  localFiles?: FileList;
 }
 
 export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: RepositoryFormProps) {
   const { toast } = useToast();
   const [analyzeProgress, setAnalyzeProgress] = useState(0);
   const [analyzeStage, setAnalyzeStage] = useState<string>("");
+  const directoryInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<FormValues>({
     defaultValues: {
@@ -34,32 +34,33 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
     },
   });
 
+  const sourceType = form.watch('sourceType');
+
   const analyzeMutation = useMutation({
     mutationFn: analyzeRepository,
     onMutate: () => {
       setAnalyzeProgress(10);
       setAnalyzeStage("Initializing repository analysis...");
-      
+
       // For very small repos, we'll use shorter intervals
       const baseDelay = 200;
-      
+
       setTimeout(() => {
         setAnalyzeProgress(30);
-        setAnalyzeStage("Cloning repository...");
+        setAnalyzeStage(sourceType === 'github' ? "Cloning repository..." : "Reading directory contents...");
       }, baseDelay);
-      
+
       setTimeout(() => {
         setAnalyzeProgress(60);
         setAnalyzeStage("Analyzing files...");
       }, baseDelay * 2);
-      
+
       setTimeout(() => {
         setAnalyzeProgress(90);
         setAnalyzeStage("Calculating statistics...");
       }, baseDelay * 3);
     },
     onSuccess: (data) => {
-      // Immediately set to 100% when we get the response
       setAnalyzeProgress(100);
       setAnalyzeStage("Analysis complete!");
       toast({
@@ -68,8 +69,7 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
       });
       const values = form.getValues();
       onAnalyzeComplete(data.stats, values.githubUrl, values.directoryPath);
-      
-      // Clear the progress bar more quickly for small repos
+
       setTimeout(() => {
         setAnalyzeProgress(0);
         setAnalyzeStage("");
@@ -86,6 +86,12 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
       onAnalyzeComplete();
     },
   });
+
+  const handleDirectoryClick = () => {
+    if (directoryInputRef.current) {
+      directoryInputRef.current.click();
+    }
+  };
 
   const onSubmit = (values: FormValues) => {
     onAnalyzeStart();
@@ -128,56 +134,105 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="githubUrl"
-          rules={{ required: "GitHub URL is required" }}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Repository URL</FormLabel>
-              <FormDescription>
-                Enter the full URL of the GitHub repository you want to analyze
-              </FormDescription>
-              <FormControl>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <Github className="w-5 h-5 text-muted-foreground/70" />
-                  </div>
-                  <Input 
-                    placeholder="https://github.com/username/repository"
-                    className="pl-10"
-                    {...field}
-                  />
-                </div>
-              </FormControl>
-            </FormItem>
-          )}
-        />
 
-        <FormField
-          control={form.control}
-          name="directoryPath"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Directory Path</FormLabel>
-              <FormDescription>
-                Optionally specify a subdirectory to analyze. Leave empty to process the entire repository
-              </FormDescription>
-              <FormControl>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <FolderIcon className="w-5 h-5 text-muted-foreground/70" />
+        {sourceType === 'github' && (
+          <FormField
+            control={form.control}
+            name="githubUrl"
+            rules={{ required: "GitHub URL is required for GitHub repositories" }}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Repository URL</FormLabel>
+                <FormDescription>
+                  Enter the full URL of the GitHub repository you want to analyze
+                </FormDescription>
+                <FormControl>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                      <Github className="w-5 h-5 text-muted-foreground/70" />
+                    </div>
+                    <Input 
+                      placeholder="https://github.com/username/repository"
+                      className="pl-10"
+                      {...field}
+                    />
                   </div>
-                  <Input 
-                    placeholder="e.g., src/components"
-                    className="pl-10"
-                    {...field}
-                  />
-                </div>
-              </FormControl>
-            </FormItem>
-          )}
-        />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+        )}
+
+        {sourceType === 'local' && (
+          <FormField
+            control={form.control}
+            name="directoryPath"
+            rules={{ required: "Please select a directory to analyze" }}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Select Directory</FormLabel>
+                <FormDescription>
+                  Choose a local directory to analyze its contents
+                </FormDescription>
+                <FormControl>
+                  <div className="relative">
+                    <input
+                      type="file"
+                      ref={directoryInputRef}
+                      webkitdirectory=""
+                      directory=""
+                      style={{ display: 'none' }}
+                      onChange={(e) => {
+                        const files = e.target.files;
+                        if (files && files.length > 0) {
+                          // Use the parent directory path
+                          const path = files[0].webkitRelativePath.split('/')[0];
+                          field.onChange(path);
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full flex items-center gap-2"
+                      onClick={handleDirectoryClick}
+                    >
+                      <FolderIcon className="w-5 h-5" />
+                      {field.value ? field.value : "Browse Directory"}
+                    </Button>
+                  </div>
+                </FormControl>
+              </FormItem>
+            )}
+          />
+        )}
+
+        {sourceType === 'github' && (
+          <FormField
+            control={form.control}
+            name="directoryPath"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Directory Path</FormLabel>
+                <FormDescription>
+                  Optionally specify a subdirectory to analyze. Leave empty to process the entire repository
+                </FormDescription>
+                <FormControl>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                      <FolderIcon className="w-5 h-5 text-muted-foreground/70" />
+                    </div>
+                    <Input 
+                      placeholder="e.g., src/components"
+                      className="pl-10"
+                      {...field}
+                    />
+                  </div>
+                </FormControl>
+              </FormItem>
+            )}
+          />
+        )}
 
         {analyzeProgress > 0 && (
           <div className="space-y-3 bg-muted/30 p-4 rounded-lg">

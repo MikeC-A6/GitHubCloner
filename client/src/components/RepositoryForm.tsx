@@ -261,7 +261,7 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
           <div className="space-y-3 bg-muted/30 p-4 rounded-lg">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">{analyzeStage}</span>
-              <span className="font-medium">{analyzeProgress}%</span>
+              <span className="font-medium">{Math.round(analyzeProgress)}%</span>
             </div>
             <Progress value={analyzeProgress} className="h-2" />
           </div>

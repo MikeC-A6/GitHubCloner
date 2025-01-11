@@ -1,13 +1,14 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { analyzeGitHubRepo, downloadRepository } from "./services/github/index.js";
+import { analyzeLocalFiles } from "./services/local/local-analyzer.js";
 import { getPatterns, updatePatterns, resetToDefaultPatterns } from "./services/patterns.js";
 
 export function registerRoutes(app: Express): Server {
   app.post("/api/analyze", async (req, res) => {
     try {
       const { sourceType, githubUrl, directoryPath, files } = req.body;
-      
+
       if (sourceType === 'github') {
         if (!githubUrl) {
           return res.status(400).json({ message: "GitHub URL is required" });

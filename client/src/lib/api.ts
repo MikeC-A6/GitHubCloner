@@ -25,6 +25,11 @@ interface PatternsResponse {
   current: string[];
 }
 
+interface DownloadResponse {
+  content: string;
+  filename: string;
+}
+
 export async function analyzeRepository(request: AnalyzeRequest): Promise<AnalyzeResponse> {
   const response = await fetch("/api/analyze", {
     method: "POST",
@@ -54,18 +59,16 @@ export async function downloadRepository(request: AnalyzeRequest): Promise<void>
     throw new Error(await response.text());
   }
 
-  // Get the filename from the Content-Disposition header, fallback to a default if not present
+  // Get the filename from the Content-Disposition header
   const contentDisposition = response.headers.get('Content-Disposition');
-  let filename = 'repository-content.txt';
-  if (contentDisposition) {
-    const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
-    if (matches != null && matches[1]) {
-      filename = matches[1].replace(/['"]/g, '');
-    }
-  }
+  const filenameMatch = contentDisposition?.match(/filename="([^"]+)"/);
+  const filename = filenameMatch?.[1] || 'repository.txt';
 
-  // Create a blob from the response and trigger download
-  const blob = await response.blob();
+  // Get the content directly as text
+  const content = await response.text();
+
+  // Create a blob from the text content
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

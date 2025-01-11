@@ -106,7 +106,7 @@ export class ContentProcessor implements IContentProcessor, IContentTypeDetector
     if (lowercasePath.includes('/controllers/') || lowercasePath.includes('controller.')) {
       return 'controller';
     }
-    return 'source';
+    return 'code';
   }
 
   private determineRole(file: string): string {
@@ -133,6 +133,6 @@ export class ContentProcessor implements IContentProcessor, IContentTypeDetector
     if (lowercasePath.includes('model')) {
       return 'model';
     }
-    return 'source';
+    return 'file';
   }
 }

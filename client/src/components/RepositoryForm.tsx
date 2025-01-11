@@ -36,20 +36,27 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
     onMutate: () => {
       setAnalyzeProgress(10);
       setAnalyzeStage("Initializing repository analysis...");
+      
+      // For very small repos, we'll use shorter intervals
+      const baseDelay = 200;
+      
       setTimeout(() => {
         setAnalyzeProgress(30);
         setAnalyzeStage("Cloning repository...");
-      }, 500);
+      }, baseDelay);
+      
       setTimeout(() => {
         setAnalyzeProgress(60);
         setAnalyzeStage("Analyzing files...");
-      }, 1500);
+      }, baseDelay * 2);
+      
       setTimeout(() => {
         setAnalyzeProgress(90);
         setAnalyzeStage("Calculating statistics...");
-      }, 2500);
+      }, baseDelay * 3);
     },
     onSuccess: (data) => {
+      // Immediately set to 100% when we get the response
       setAnalyzeProgress(100);
       setAnalyzeStage("Analysis complete!");
       toast({
@@ -58,10 +65,12 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
       });
       const values = form.getValues();
       onAnalyzeComplete(data.stats, values.githubUrl, values.directoryPath);
+      
+      // Clear the progress bar more quickly for small repos
       setTimeout(() => {
         setAnalyzeProgress(0);
         setAnalyzeStage("");
-      }, 1000);
+      }, 500);
     },
     onError: (error) => {
       setAnalyzeProgress(0);

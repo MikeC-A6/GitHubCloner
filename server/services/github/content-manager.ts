@@ -10,33 +10,32 @@ export class ContentManager implements IContentManager, IContentFormatter {
     this.contentProcessor = contentProcessor || new ContentProcessor();
   }
 
-  generateStandardizedFileName(originalPath: string, type: string, role: string): string {
+  generateStandardizedFileName(originalPath: string, type: string, role: string, repoUrl?: string): string {
     const date = new Date();
     const timestamp = date.toISOString().split('T')[0].replace(/-/g, '') + 
                      '_' + date.toISOString().split('T')[1].split('.')[0].replace(/:/g, '');
 
-    // Extract repository name from the path (if available)
-    const pathParts = originalPath.split('/');
-    const repoContext = pathParts[0] === '' ? 'root' : pathParts[0];
+    // Extract repository name from the GitHub URL
+    let repoContext = 'repository';
+    if (repoUrl) {
+      const urlParts = repoUrl.split('/');
+      repoContext = urlParts[urlParts.length - 1]?.replace('.git', '') || 
+                   urlParts[urlParts.length - 2] || 
+                   'repository';
+    }
 
     // Create a more readable directory context
+    const pathParts = originalPath.split('/');
     const dirContext = pathParts
-      .slice(1, -1) // Exclude the first (repo) and last (filename) parts
+      .slice(0, -1) // Exclude the filename
       .join('-')
       .toLowerCase()
       .replace(/[^a-z0-9-]/g, '-') // Replace non-alphanumeric chars with hyphens
       .replace(/-+/g, '-') // Replace multiple consecutive hyphens with a single one
       .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
 
-    // Combine contexts for the filename
-    const context = dirContext ? `${repoContext}-${dirContext}` : repoContext;
-
-    // Clean up type and role
-    const cleanType = type.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const cleanRole = role.toLowerCase().replace(/[^a-z0-9]/g, '');
-
-    // Generate final filename with all components
-    return `${context}_${cleanType}_${cleanRole}_${timestamp}.txt`;
+    // Generate final filename with just repository name and timestamp
+    return `${repoContext}_${timestamp}.txt`;
   }
 
   async getFileContents(files: string[], basePath: string, repoUrl: string): Promise<FileContent[]> {
@@ -50,7 +49,8 @@ export class ContentManager implements IContentManager, IContentFormatter {
             const standardizedName = this.generateStandardizedFileName(
               file, 
               result.contentType || 'unknown',
-              result.role || 'unknown'
+              result.role || 'unknown',
+              repoUrl
             );
 
             return {
@@ -66,7 +66,8 @@ export class ContentManager implements IContentManager, IContentFormatter {
             const errorFileName = this.generateStandardizedFileName(
               file,
               'error',
-              'unknown'
+              'unknown',
+              repoUrl
             );
             return {
               path: file,
@@ -116,7 +117,31 @@ export class ContentManager implements IContentManager, IContentFormatter {
         content: typeof content?.content === 'string' ? content.content : 'No content available'
       };
 
-      return `${safeContent.standardizedName}\n${'═'.repeat(80)}\n${safeContent.content}\n\n`;
+      // Create metadata section
+      const metadataSection = [
+        `File: ${safeContent.path}`,
+        `GitHub URL: ${safeContent.githubUrl}`,
+        `Language: ${safeContent.language}`,
+        `Role: ${safeContent.role}`,
+        `Type: ${safeContent.contentType}`,
+        `Directory: ${safeContent.directoryContext}`,
+        `Size: ${safeContent.metadata.size}`,
+        `Created: ${safeContent.metadata.created}`,
+        `Modified: ${safeContent.metadata.modified}`,
+        `Permissions: ${safeContent.metadata.permissions}`,
+        `Generated: ${safeContent.metadata.generatedAt}`,
+        safeContent.dependencies.length > 0 ? `Dependencies:\n${safeContent.dependencies.map(d => `  ${d}`).join('\n')}` : 'Dependencies: none'
+      ].join('\n');
+
+      // Format the complete output
+      return [
+        safeContent.standardizedName,
+        '═'.repeat(80),
+        metadataSection,
+        '═'.repeat(80),
+        safeContent.content,
+        '\n\n'
+      ].join('\n');
     } catch (error) {
       return `Error formatting file content: ${error instanceof Error ? error.message : 'Unknown error'}\n\n`;
     }

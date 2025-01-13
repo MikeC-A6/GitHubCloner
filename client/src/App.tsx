@@ -3,28 +3,61 @@ import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 import Home from "./pages/Home";
 
-function App() {
+// Import the logo
+import logo from "./assets/agile6_logo_rgb (1).png";
+
+function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <Switch>
-      <Route path="/" component={Home} />
-      <Route component={NotFound} />
-    </Switch>
+    <div className="min-h-screen flex flex-col">
+      <nav className="navbar">
+        <div className="container flex justify-between items-center">
+          <div className="logo-container">
+            <img src={logo} alt="Agile Six Logo" className="logo" />
+          </div>
+          <div className="flex gap-6">
+            <a href="/" className="nav-link">Home</a>
+            <a href="/about" className="nav-link">About</a>
+            <a href="/contact" className="nav-link">Contact</a>
+          </div>
+        </div>
+      </nav>
+      <main className="flex-1">
+        {children}
+      </main>
+      <footer className="bg-agilesix-blue text-white py-8">
+        <div className="container">
+          <div className="flex justify-between items-center">
+            <img src={logo} alt="Agile Six Logo" className="logo brightness-0 invert" />
+            <p className="text-sm">&copy; {new Date().getFullYear()} Agile Six. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }
 
-// fallback 404 not found page
+function App() {
+  return (
+    <Layout>
+      <Switch>
+        <Route path="/" component={Home} />
+        <Route component={NotFound} />
+      </Switch>
+    </Layout>
+  );
+}
+
 function NotFound() {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gray-50">
-      <Card className="w-full max-w-md mx-4">
+    <div className="container py-12">
+      <Card className="w-full max-w-md mx-auto">
         <CardContent className="pt-6">
           <div className="flex mb-4 gap-2">
-            <AlertCircle className="h-8 w-8 text-red-500" />
-            <h1 className="text-2xl font-bold text-gray-900">404 Page Not Found</h1>
+            <AlertCircle className="h-8 w-8 text-agilesix-red" />
+            <h1 className="heading-2">404 Page Not Found</h1>
           </div>
-
-          <p className="mt-4 text-sm text-gray-600">
-            Did you forget to add the page to the router?
+          <p className="text-body mt-4">
+            The page you're looking for doesn't exist or has been moved.
           </p>
         </CardContent>
       </Card>

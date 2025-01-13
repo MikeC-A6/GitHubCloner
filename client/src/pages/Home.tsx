@@ -34,14 +34,19 @@ export default function Home() {
     return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
   };
 
-  const handleAnalyzeComplete = (stats?: RepoStats, repoUrl?: string, directoryPath?: string, selectedFiles?: FileList) => {
+  const handleAnalyzeComplete = (
+    stats?: RepoStats, 
+    repoUrl?: string, 
+    directoryPath?: string, 
+    selectedFiles?: FileList | null
+  ) => {
     setAnalyzing(false);
     if (stats) {
       setAnalysisData({
         stats,
         repoUrl,
         directoryPath,
-        selectedFiles
+        selectedFiles: selectedFiles || undefined
       });
     } else {
       setAnalysisData(null);
@@ -49,69 +54,79 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-b from-background to-muted/20">
-      <div className="max-w-3xl mx-auto p-6 space-y-8">
-        <div className="text-center">
-          <div className="flex items-center justify-center gap-4 bg-muted/80 text-foreground px-8 py-4 rounded-xl text-3xl font-bold w-full">
-            <Github className="w-8 h-8" />
-            <span>Repository Analysis Tool</span>
-          </div>
+    <div className="bg-white">
+      <div className="page-header bg-agilesix-blue text-white">
+        <div className="container">
+          <h1 className="text-4xl font-bold tracking-tight">Repository Analysis Tool</h1>
+          <p className="mt-2 text-agilesix-cyan">Analyze and prepare your repository for text conversion</p>
         </div>
+      </div>
 
-        <Card className="border-2">
-          <CardHeader>
-            <CardTitle>Repository Details</CardTitle>
-            <CardDescription>
-              First, analyze your repository to see its contents and prepare it for text conversion
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="mb-6 rounded-lg bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
-              <p>The analysis will:</p>
-              <ul className="mt-2 ml-4 list-disc space-y-1">
-                <li>Calculate total repository size</li>
-                <li>Identify all file types and their sizes</li>
-                <li>Help you decide what to exclude before converting</li>
-              </ul>
-            </div>
-            <RepositoryForm 
-              onAnalyzeStart={() => {
-                setAnalyzing(true);
-                setAnalysisData(null);
-              }}
-              onAnalyzeComplete={handleAnalyzeComplete}
-            />
-          </CardContent>
-        </Card>
-
-        {analysisData && (
-          <Card>
+      <div className="section">
+        <div className="container max-w-4xl">
+          <Card className="border-agilesix-light-grey shadow-sm">
             <CardHeader>
-              <CardTitle>Analysis Results</CardTitle>
-              <CardDescription>Overview of repository contents and file statistics</CardDescription>
+              <CardTitle className="text-agilesix-blue text-2xl">Repository Details</CardTitle>
+              <CardDescription className="text-agilesix-dark-grey">
+                First, analyze your repository to see its contents and prepare it for text conversion
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="bg-muted/50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold">{analysisData.stats.fileCount}</div>
-                  <div className="text-sm text-muted-foreground">Total Files</div>
-                </div>
-                <div className="bg-muted/50 p-4 rounded-lg">
-                  <div className="text-2xl font-bold">{formatBytes(analysisData.stats.totalSizeBytes)}</div>
-                  <div className="text-sm text-muted-foreground">Total Size</div>
-                </div>
+              <div className="mb-6 rounded-lg bg-agilesix-light-blue/20 px-4 py-3 text-sm text-agilesix-dark-grey">
+                <p className="font-semibold">The analysis will:</p>
+                <ul className="mt-2 ml-4 list-disc space-y-1">
+                  <li>Calculate total repository size</li>
+                  <li>Identify all file types and their sizes</li>
+                  <li>Help you decide what to exclude before converting</li>
+                </ul>
               </div>
+              <RepositoryForm 
+                onAnalyzeStart={() => {
+                  setAnalyzing(true);
+                  setAnalysisData(null);
+                }}
+                onAnalyzeComplete={handleAnalyzeComplete}
+              />
             </CardContent>
           </Card>
-        )}
 
-        <PatternManager 
-          disabled={analyzing} 
-          fileTypes={analysisData?.stats.fileTypes}
-          repoUrl={analysisData?.repoUrl}
-          directoryPath={analysisData?.directoryPath}
-          selectedFiles={analysisData?.selectedFiles}
-        />
+          {analysisData && (
+            <Card className="mt-8 border-agilesix-light-grey shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-agilesix-blue text-2xl">Analysis Results</CardTitle>
+                <CardDescription className="text-agilesix-dark-grey">
+                  Overview of repository contents and file statistics
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="bg-agilesix-light-blue/20 p-6 rounded-lg">
+                    <div className="text-3xl font-bold text-agilesix-blue">
+                      {analysisData.stats.fileCount}
+                    </div>
+                    <div className="text-sm text-agilesix-dark-grey mt-1">Total Files</div>
+                  </div>
+                  <div className="bg-agilesix-light-blue/20 p-6 rounded-lg">
+                    <div className="text-3xl font-bold text-agilesix-blue">
+                      {formatBytes(analysisData.stats.totalSizeBytes)}
+                    </div>
+                    <div className="text-sm text-agilesix-dark-grey mt-1">Total Size</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="mt-8">
+            <PatternManager 
+              disabled={analyzing} 
+              fileTypes={analysisData?.stats.fileTypes}
+              repoUrl={analysisData?.repoUrl}
+              directoryPath={analysisData?.directoryPath}
+              selectedFiles={analysisData?.selectedFiles}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

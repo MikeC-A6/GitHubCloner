@@ -3,11 +3,85 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --background: #ffffff;
+    --foreground: #003A70;
+    --primary: #003A70;
+    --primary-foreground: #ffffff;
+    --secondary: #707372;
+    --secondary-foreground: #ffffff;
+    --muted: #D9D9D6;
+    --muted-foreground: #003A70;
+    --accent: #41B6E6;
+    --accent-foreground: #003A70;
+    --destructive: #8A2A2B;
+    --destructive-foreground: #ffffff;
+    --border: #D9D9D6;
+    --input: #D9D9D6;
+    --ring: #41B6E6;
+    --radius: 0.5rem;
+  }
+
   * {
     @apply border-border;
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply font-sans antialiased bg-background text-foreground leading-relaxed;
+  }
+}
+
+/* Agile Six Custom Components */
+@layer components {
+  .logo {
+    @apply h-8 w-auto;
+  }
+
+  .logo-container {
+    @apply flex items-center space-x-2;
+  }
+
+  .navbar {
+    @apply bg-white border-b border-agilesix-light-grey px-4 py-3 flex justify-between items-center;
+  }
+
+  .btn-primary {
+    @apply bg-agilesix-blue text-white hover:bg-agilesix-dark-cyan transition-colors px-4 py-2 rounded-md font-semibold;
+  }
+  
+  .btn-secondary {
+    @apply bg-agilesix-dark-grey text-white hover:bg-agilesix-cyan transition-colors px-4 py-2 rounded-md font-semibold;
+  }
+
+  .nav-link {
+    @apply text-agilesix-blue hover:text-agilesix-cyan transition-colors font-semibold;
+  }
+
+  .card {
+    @apply bg-white rounded-lg border border-agilesix-light-grey p-6 shadow-sm;
+  }
+
+  .heading-1 {
+    @apply text-4xl font-bold text-agilesix-blue tracking-tight;
+  }
+
+  .heading-2 {
+    @apply text-3xl font-bold text-agilesix-dark-grey tracking-tight;
+  }
+
+  .text-body {
+    @apply text-base text-agilesix-dark-grey;
+  }
+
+  .container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .page-header {
+    @apply py-8;
+  }
+
+  .section {
+    @apply py-12;
   }
 }

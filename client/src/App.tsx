@@ -14,11 +14,7 @@ function Layout({ children }: { children: React.ReactNode }) {
           <div className="logo-container">
             <img src={logo} alt="Agile Six Logo" className="logo" />
           </div>
-          <div className="flex gap-6">
-            <a href="/" className="nav-link">Home</a>
-            <a href="/about" className="nav-link">About</a>
-            <a href="/contact" className="nav-link">Contact</a>
-          </div>
+          
         </div>
       </nav>
       <main className="flex-1">

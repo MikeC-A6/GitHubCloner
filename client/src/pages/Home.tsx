@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import RepositoryForm from "@/components/RepositoryForm";
 import PatternManager from "@/components/PatternManager";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Github } from "lucide-react";
 
 interface FileTypeStats {
@@ -40,18 +40,61 @@ export default function Home() {
     directoryPath?: string, 
     selectedFiles?: FileList | null
   ) => {
+    console.log('handleAnalyzeComplete called with:', {
+      stats,
+      repoUrl,
+      directoryPath,
+      hasSelectedFiles: selectedFiles ? selectedFiles.length : 0
+    });
+
     setAnalyzing(false);
-    if (stats) {
-      setAnalysisData({
-        stats,
-        repoUrl,
-        directoryPath,
-        selectedFiles: selectedFiles || undefined
-      });
-    } else {
+
+    if (!stats) {
+      console.log('No stats provided, resetting analysis data');
       setAnalysisData(null);
+      return;
     }
+
+    // Create the analysis data object with default values for missing fields
+    const newAnalysisData: AnalysisData = {
+      stats: {
+        fileCount: stats.fileCount || 0,
+        totalSizeBytes: stats.totalSizeBytes || 0,
+        fileTypes: Array.isArray(stats.fileTypes) ? stats.fileTypes : []
+      },
+      repoUrl,
+      directoryPath,
+      selectedFiles: selectedFiles || undefined
+    };
+
+    console.log('Setting new analysis data:', JSON.stringify(newAnalysisData, null, 2));
+    setAnalysisData(newAnalysisData);
   };
+
+  // Simplified validation that focuses on essential fields
+  const isValidAnalysisData = (data: AnalysisData | null): data is AnalysisData => {
+    if (!data || !data.stats) {
+      console.log('Invalid data: missing data or stats object');
+      return false;
+    }
+
+    const hasRequiredFields = 
+      typeof data.stats.fileCount === 'number' &&
+      typeof data.stats.totalSizeBytes === 'number';
+
+    if (!hasRequiredFields) {
+      console.log('Invalid data: missing required fields', data.stats);
+      return false;
+    }
+
+    return true;
+  };
+
+  const hasValidAnalysisData = isValidAnalysisData(analysisData);
+  console.log('Analysis data validation:', { 
+    hasValidAnalysisData, 
+    analysisData: analysisData ? JSON.stringify(analysisData.stats) : 'null' 
+  });
 
   return (
     <div className="bg-white">
@@ -90,8 +133,8 @@ export default function Home() {
             </CardContent>
           </Card>
 
-          {analysisData && (
-            <Card className="mt-8 border-agilesix-light-grey shadow-sm">
+          {hasValidAnalysisData && (
+            <Card className="mt-8 border-agilesix-light-grey shadow-sm" data-testid="analysis-results">
               <CardHeader>
                 <CardTitle className="text-agilesix-blue text-2xl">Analysis Results</CardTitle>
                 <CardDescription className="text-agilesix-dark-grey">
@@ -120,7 +163,7 @@ export default function Home() {
           <div className="mt-8">
             <PatternManager 
               disabled={analyzing} 
-              fileTypes={analysisData?.stats.fileTypes}
+              fileTypes={analysisData?.stats?.fileTypes}
               repoUrl={analysisData?.repoUrl}
               directoryPath={analysisData?.directoryPath}
               selectedFiles={analysisData?.selectedFiles}
@@ -128,6 +171,13 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Add debug display */}
+      {analysisData && (
+        <div className="hidden">
+          Debug: Has analysis data with {analysisData.stats.fileCount} files
+        </div>
+      )}
     </div>
   );
 }

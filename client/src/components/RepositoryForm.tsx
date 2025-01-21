@@ -44,6 +44,7 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
       formData.append('sourceType', values.sourceType);
 
       if (values.sourceType === 'github') {
+        console.log('Analyzing GitHub repository:', values.githubUrl);
         formData.append('githubUrl', values.githubUrl);
         if (values.directoryPath) {
           formData.append('directoryPath', values.directoryPath);
@@ -85,26 +86,42 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
         throw new Error(errorText);
       }
 
-      return response.json();
+      const data = await response.json();
+      console.log('Raw server response:', JSON.stringify(data, null, 2));
+      return data;
     },
     onMutate: () => {
+      console.log('Starting analysis...');
       setAnalyzeProgress(10);
       setAnalyzeStage("Initializing analysis...");
     },
     onSuccess: (data) => {
+      console.log('Analysis completed with data:', JSON.stringify(data, null, 2));
       setAnalyzeProgress(100);
       setAnalyzeStage("Analysis complete!");
-      toast({
-        title: "Repository analyzed successfully",
-        description: "You can now customize and download the repository content",
-      });
-      const values = form.getValues();
-      onAnalyzeComplete(
-        data.stats,
-        values.sourceType === 'github' ? values.githubUrl : undefined,
-        values.directoryPath,
-        selectedFiles
-      );
+
+      if (data && data.stats) {
+        toast({
+          title: "Repository analyzed successfully",
+          description: "You can now customize and download the repository content",
+        });
+
+        const values = form.getValues();
+        onAnalyzeComplete(
+          data.stats,
+          values.sourceType === 'github' ? values.githubUrl : undefined,
+          values.directoryPath,
+          selectedFiles
+        );
+      } else {
+        console.error('Invalid response structure:', data);
+        toast({
+          title: "Analysis completed with invalid data",
+          description: "The server response was not in the expected format.",
+          variant: "destructive",
+        });
+        onAnalyzeComplete();
+      }
 
       setTimeout(() => {
         setAnalyzeProgress(0);
@@ -112,6 +129,7 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
       }, 500);
     },
     onError: (error: Error) => {
+      console.error('Analysis failed:', error);
       setAnalyzeProgress(0);
       setAnalyzeStage("");
       toast({
@@ -208,7 +226,34 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
                     </div>
                     <Input
                       placeholder="https://github.com/username/repository"
-                      className="pl-10"
+                      className="pl-10 placeholder:text-muted-foreground/50"
+                      {...field}
+                    />
+                  </div>
+                </FormControl>
+              </FormItem>
+            )}
+          />
+        )}
+
+        {sourceType === 'github' && (
+          <FormField
+            control={form.control}
+            name="directoryPath"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Directory Path (Optional)</FormLabel>
+                <FormDescription>
+                  Leave empty to analyze the entire repository, or specify a subdirectory path
+                </FormDescription>
+                <FormControl>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                      <FolderIcon className="w-5 h-5 text-muted-foreground/70" />
+                    </div>
+                    <Input
+                      placeholder="src/components"
+                      className="pl-10 placeholder:text-muted-foreground/50"
                       {...field}
                     />
                   </div>

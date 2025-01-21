@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { User, signInWithPopup, signOut } from "firebase/auth";
 import { auth, googleProvider } from "./firebase";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 interface AuthContextType {
   user: User | null;
@@ -16,15 +17,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       setUser(user);
       setLoading(false);
+      // Redirect to home page if user is authenticated
+      if (user) {
+        setLocation("/");
+      }
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [setLocation]);
 
   const handleSignIn = async () => {
     try {
@@ -42,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Welcome!",
         description: "Successfully signed in.",
       });
+      setLocation("/"); // Redirect after successful login
     } catch (error: any) {
       toast({
         title: "Authentication Error",
@@ -54,6 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const handleSignOut = async () => {
     try {
       await signOut(auth);
+      setLocation("/login");
       toast({
         title: "Signed out",
         description: "Successfully signed out.",

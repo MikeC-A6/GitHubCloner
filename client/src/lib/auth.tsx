@@ -20,6 +20,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
+    // In development, set a mock user
+    if (import.meta.env.DEV) {
+      setUser({
+        email: 'dev@agile6.com',
+        emailVerified: true,
+        displayName: 'Development User',
+      } as User);
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = auth.onAuthStateChanged((user) => {
       setUser(user);
       setLoading(false);
@@ -33,6 +44,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [setLocation]);
 
   const handleSignIn = async () => {
+    // In development, skip actual authentication
+    if (import.meta.env.DEV) {
+      setUser({
+        email: 'dev@agile6.com',
+        emailVerified: true,
+        displayName: 'Development User',
+      } as User);
+      setLocation("/");
+      return;
+    }
+
     try {
       const result = await signInWithPopup(auth, googleProvider);
       if (!result.user.email?.endsWith('@agile6.com')) {
@@ -59,6 +81,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const handleSignOut = async () => {
+    // In development, just clear the mock user
+    if (import.meta.env.DEV) {
+      setUser(null);
+      setLocation("/login");
+      return;
+    }
+
     try {
       await signOut(auth);
       setLocation("/login");

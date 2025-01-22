@@ -52,6 +52,35 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.post("/api/download", upload.array('files'), async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { sourceType, githubUrl, directoryPath } = req.body;
+      console.log('Download request:', { sourceType, githubUrl, directoryPath });
+
+      if (sourceType === 'github') {
+        if (!githubUrl) {
+          return res.status(400).json({ message: "GitHub URL is required" });
+        }
+
+        const { content, filename } = await downloadRepository(githubUrl, directoryPath);
+        res.setHeader('Content-Type', 'text/plain');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        return res.send(content);
+      }
+
+      // Handle local file download
+      if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
+        return res.status(400).json({ message: "Files are required for local download" });
+      }
+
+      // Process local files similar to GitHub download
+      // This part should be implemented in a local service similar to downloadRepository
+      return res.status(501).json({ message: "Local file download not implemented yet" });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   app.get("/api/patterns", async (req: Request, res: Response, next: NextFunction) => {
     try {
       const patterns = getPatterns();

@@ -33,12 +33,21 @@ interface DownloadResponse {
 }
 
 export async function analyzeRepository(request: AnalyzeRequest): Promise<AnalyzeResponse> {
+  const formData = new FormData();
+  formData.append('sourceType', request.sourceType);
+
+  if (request.sourceType === 'github') {
+    if (request.githubUrl) formData.append('githubUrl', request.githubUrl);
+    if (request.directoryPath) formData.append('directoryPath', request.directoryPath);
+  } else if (request.files) {
+    for (let i = 0; i < request.files.length; i++) {
+      formData.append('files', request.files[i]);
+    }
+  }
+
   const response = await fetch("/api/analyze", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(request),
+    body: formData,
   });
 
   if (!response.ok) {
@@ -49,12 +58,21 @@ export async function analyzeRepository(request: AnalyzeRequest): Promise<Analyz
 }
 
 export async function downloadRepository(request: AnalyzeRequest): Promise<void> {
+  const formData = new FormData();
+  formData.append('sourceType', request.sourceType);
+
+  if (request.sourceType === 'github') {
+    if (request.githubUrl) formData.append('githubUrl', request.githubUrl);
+    if (request.directoryPath) formData.append('directoryPath', request.directoryPath);
+  } else if (request.files) {
+    for (let i = 0; i < request.files.length; i++) {
+      formData.append('files', request.files[i]);
+    }
+  }
+
   const response = await fetch("/api/download", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(request),
+    body: formData,
   });
 
   if (!response.ok) {

@@ -23,7 +23,7 @@ export class ContentProcessor implements IContentProcessor, IContentTypeDetector
       const repoUrlParts = repoUrl.split('github.com/');
       const fullGithubUrl = repoUrlParts.length > 1 ? 
         `https://github.com/${repoUrlParts[1]}/blob/main/${file}` : 
-        'Invalid GitHub URL';
+        repoUrl;
 
       const metadata = this.extractMetadata(stats);
       const fileExt = this.fileSystem.extname(file).toLowerCase();
@@ -36,27 +36,28 @@ export class ContentProcessor implements IContentProcessor, IContentTypeDetector
         pathParts.slice(0, -1).join('/') : 
         'root';
 
-      // Extract imports only for JavaScript/TypeScript files
+      // Extract imports for JavaScript/TypeScript files
       const imports = (fileExt === '.ts' || fileExt === '.js' || fileExt === '.tsx' || fileExt === '.jsx') ? 
         (content.match(/^import.*from.*$/gm) || []) : [];
 
       return {
         path: file,
-        standardizedName: '', // Left empty for ContentManager to set
-        content: content || '',
+        standardizedName: '', // Will be set by ContentManager
+        content,
         githubUrl: fullGithubUrl,
         metadata: {
           ...metadata,
           generatedAt: new Date().toISOString()
         },
         language: fileExt.slice(1) || 'unknown',
-        role: role,
-        directoryContext: directoryContext,
+        role,
+        directoryContext,
         dependencies: imports,
-        contentType: contentType
+        contentType
       };
     } catch (error) {
-      throw error; // Let ContentManager handle error cases with proper file naming
+      console.error(`Error processing file ${file}:`, error);
+      throw error;
     }
   }
 

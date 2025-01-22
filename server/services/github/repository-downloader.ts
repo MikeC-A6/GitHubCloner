@@ -22,33 +22,66 @@ export class RepositoryDownloader implements IRepositoryDownloader {
 
   async downloadRepository(url: string, directoryPath?: string): Promise<{ content: string, filename: string }> {
     let tempDir: string | undefined;
-    try {
-      tempDir = await this.repoManager.cloneRepository(url);
-      const targetPath = await this.repoManager.getTargetPath(tempDir, directoryPath);
 
+    try {
+      // Step 1: Clone the repository and get the target path
+      tempDir = await this.repoManager.cloneRepository(url);
+      if (!tempDir) {
+        throw new Error('Failed to clone repository: temporary directory not created');
+      }
+
+      const targetPath = await this.repoManager.getTargetPath(tempDir, directoryPath);
+      if (!targetPath) {
+        throw new Error('Failed to resolve target path in repository');
+      }
+
+      // Step 2: Get and filter files
       const allFiles = await this.fileAnalyzer.getAllFiles(targetPath);
+      if (!allFiles || allFiles.length === 0) {
+        throw new Error('No files found in repository');
+      }
+
       const patterns = getPatterns();
       const filteredFiles = this.patternMatcher.filterFiles(allFiles, patterns);
+      if (!filteredFiles || filteredFiles.length === 0) {
+        throw new Error('No files match the current patterns');
+      }
 
+      // Step 3: Process file contents
       const contents = await this.contentManager.getFileContents(filteredFiles, targetPath, url);
-      const formattedContent = this.contentManager.formatContentOutput(contents);
+      if (!contents || contents.length === 0) {
+        throw new Error('Failed to read file contents');
+      }
 
-      // Get the first file's standardized name as the download filename
-      // If no files or no standardized name, use a default
-      const filename = contents[0]?.standardizedName || `repository_${new Date().toISOString().split('T')[0]}.txt`;
+      const formattedContent = this.contentManager.formatContentOutput(contents);
+      if (!formattedContent) {
+        throw new Error('Failed to format repository content');
+      }
+
+      // Generate a standardized filename
+      const repoName = url.split('/').pop()?.replace('.git', '') || 'repository';
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `${repoName}_${timestamp}.txt`;
 
       return {
         content: formattedContent,
         filename
       };
     } catch (error: any) {
+      console.error('Repository download failed:', error);
+
       if (error instanceof FileSystemError) {
         throw error;
       }
       throw new Error(`Failed to download repository: ${error.message}`);
     } finally {
+      // Ensure cleanup happens even if an error occurs
       if (tempDir) {
-        await this.repoManager.cleanup();
+        try {
+          await this.repoManager.cleanup();
+        } catch (cleanupError) {
+          console.error('Failed to cleanup temporary directory:', cleanupError);
+        }
       }
     }
   }

@@ -106,25 +106,6 @@ export default function Home() {
                   <div className="text-sm text-muted-foreground mt-1">Total Size</div>
                 </div>
               </div>
-
-              {analysisData.stats.fileTypes?.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="text-lg font-semibold mb-4">File Types</h3>
-                  <div className="space-y-4">
-                    {analysisData.stats.fileTypes.map((type, i) => (
-                      <div key={i} className="flex justify-between items-center p-3 bg-muted rounded">
-                        <span>{type.extension}</span>
-                        <div className="text-right">
-                          <div className="font-medium">{type.count} files</div>
-                          <div className="text-sm text-muted-foreground">
-                            {formatBytes(type.totalBytes)}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
         )}

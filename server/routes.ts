@@ -10,7 +10,6 @@ const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB per file
 const MAX_FILES = 1000; // Maximum number of files to process
 
 export function registerRoutes(app: Express): Server {
-  // Configure multer with limits
   const upload = multer({
     storage: multer.memoryStorage(),
     limits: {
@@ -19,35 +18,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Helper function to handle errors
-  const handleError = (error: any, res: Response) => {
-    console.error('Error:', error);
-    const statusCode = error.status || error.statusCode || 500;
-    const message = error.message || "An unexpected error occurred";
-
-    // Handle multer errors
-    if (error instanceof multer.MulterError) {
-      if (error.code === 'LIMIT_FILE_SIZE') {
-        return res.status(413).json({
-          message: `File too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB`
-        });
-      }
-      if (error.code === 'LIMIT_FILE_COUNT') {
-        return res.status(413).json({
-          message: `Too many files. Maximum is ${MAX_FILES} files`
-        });
-      }
-    }
-
-    res.status(statusCode).json({ message });
-  };
-
-  // Error handling middleware
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    handleError(err, res);
-  });
-
-  app.post("/api/analyze", upload.array('files'), async (req: Request, res: Response) => {
+  app.post("/api/analyze", upload.array('files'), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { sourceType, githubUrl, directoryPath } = req.body;
       console.log('Analyze request:', { sourceType, githubUrl, directoryPath });
@@ -77,51 +48,20 @@ export function registerRoutes(app: Express): Server {
       console.log('Local analysis result:', result);
       return res.json(result);
     } catch (error) {
-      handleError(error, res);
+      next(error);
     }
   });
 
-  app.post("/api/download", upload.array('files'), async (req: Request, res: Response) => {
-    try {
-      const { sourceType, githubUrl, directoryPath } = req.body;
-
-      if (sourceType === 'github') {
-        if (!githubUrl) {
-          return res.status(400).json({ message: "GitHub URL is required" });
-        }
-        const result = await downloadRepository(githubUrl, directoryPath);
-
-        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-        res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
-        return res.send(result.content);
-      }
-
-      if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
-        return res.status(400).json({ message: "Files are required" });
-      }
-
-      const content = req.files.map(file => {
-        return `// File: ${file.originalname}\n${file.buffer.toString('utf-8')}\n\n`;
-      }).join('');
-
-      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-      res.setHeader('Content-Disposition', 'attachment; filename="local_files.txt"');
-      return res.send(content);
-    } catch (error) {
-      handleError(error, res);
-    }
-  });
-
-  app.get("/api/patterns", (req: Request, res: Response) => {
+  app.get("/api/patterns", async (req: Request, res: Response, next: NextFunction) => {
     try {
       const patterns = getPatterns();
       res.json({ current: patterns });
     } catch (error) {
-      handleError(error, res);
+      next(error);
     }
   });
 
-  app.post("/api/patterns", (req: Request, res: Response) => {
+  app.post("/api/patterns", async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { patterns } = req.body;
       if (!patterns) {
@@ -130,19 +70,26 @@ export function registerRoutes(app: Express): Server {
       const updatedPatterns = updatePatterns(patterns);
       res.json({ current: updatedPatterns });
     } catch (error) {
-      handleError(error, res);
+      next(error);
     }
   });
 
-  app.post("/api/patterns/reset", (_req: Request, res: Response) => {
+  app.post("/api/patterns/reset", async (_req: Request, res: Response, next: NextFunction) => {
     try {
       const patterns = resetToDefaultPatterns();
       res.json({ current: patterns });
     } catch (error) {
-      handleError(error, res);
+      next(error);
     }
   });
 
-  const httpServer = createServer(app);
-  return httpServer;
+  // Error handling middleware should be last
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    console.error('Error:', err);
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+    res.status(status).json({ message });
+  });
+
+  return createServer(app);
 }

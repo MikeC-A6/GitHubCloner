@@ -44,14 +44,12 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
       formData.append('sourceType', values.sourceType);
 
       if (values.sourceType === 'github') {
-        console.log('Analyzing GitHub repository:', values.githubUrl);
         formData.append('githubUrl', values.githubUrl);
         if (values.directoryPath) {
           formData.append('directoryPath', values.directoryPath);
         }
       } else if (selectedFiles) {
         let totalSize = 0;
-        // Check file sizes before uploading
         for (let i = 0; i < selectedFiles.length; i++) {
           const file = selectedFiles[i];
           if (file.size > maxFileSize) {
@@ -64,15 +62,11 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
           throw new Error("Total file size exceeds 500MB limit");
         }
 
-        // Append each file from the selected directory
         for (let i = 0; i < selectedFiles.length; i++) {
           formData.append('files', selectedFiles[i]);
-          // Update progress based on number of files processed
           const progress = Math.min(90, 30 + (i / selectedFiles.length) * 60);
           setAnalyzeProgress(progress);
           setAnalyzeStage(`Processing file ${i + 1} of ${selectedFiles.length}...`);
-          // Allow UI to update
-          await new Promise(resolve => setTimeout(resolve, 0));
         }
       }
 
@@ -82,16 +76,27 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText);
+        throw new Error(await response.text());
       }
 
       const data = await response.json();
       console.log('Raw server response:', JSON.stringify(data, null, 2));
-      return data;
+
+      // Transform the data to match the expected format
+      const transformedData = {
+        stats: {
+          fileCount: data.stats?.fileCount || 0,
+          totalSizeBytes: data.stats?.totalSizeBytes || 0,
+          fileTypes: Array.isArray(data.stats?.fileTypes) ? data.stats.fileTypes : []
+        }
+      };
+
+      console.log('Transformed data:', JSON.stringify(transformedData, null, 2));
+      return transformedData;
     },
     onMutate: () => {
       console.log('Starting analysis...');
+      onAnalyzeStart();
       setAnalyzeProgress(10);
       setAnalyzeStage("Initializing analysis...");
     },
@@ -101,6 +106,9 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
       setAnalyzeStage("Analysis complete!");
 
       if (data && data.stats) {
+        console.log('Valid stats found:', JSON.stringify(data.stats, null, 2));
+        console.log('Calling onAnalyzeComplete with stats');
+
         toast({
           title: "Repository analyzed successfully",
           description: "You can now customize and download the repository content",
@@ -123,10 +131,11 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
         onAnalyzeComplete();
       }
 
+      // Reset progress after a delay
       setTimeout(() => {
         setAnalyzeProgress(0);
         setAnalyzeStage("");
-      }, 500);
+      }, 1000);
     },
     onError: (error: Error) => {
       console.error('Analysis failed:', error);
@@ -147,7 +156,7 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
     }
   };
 
-  const onSubmit = (values: FormValues) => {
+  const onSubmit = async (values: FormValues) => {
     if (values.sourceType === 'local' && !selectedFiles) {
       toast({
         title: "No directory selected",
@@ -156,8 +165,13 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
       });
       return;
     }
-    onAnalyzeStart();
-    analyzeMutation.mutate(values);
+
+    try {
+      await analyzeMutation.mutateAsync(values);
+    } catch (error) {
+      // Error is handled in mutation's onError
+      console.error('Form submission failed:', error);
+    }
   };
 
   return (

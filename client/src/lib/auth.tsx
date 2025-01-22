@@ -28,15 +28,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         displayName: 'Development User',
       } as User);
       setLoading(false);
+      setLocation("/");
       return;
     }
 
     const unsubscribe = auth.onAuthStateChanged((user) => {
       setUser(user);
       setLoading(false);
-      // Redirect to home page if user is authenticated
-      if (user) {
+      // Redirect to home page if user is authenticated and we're on the login page
+      if (user && window.location.pathname === "/login") {
         setLocation("/");
+      } else if (!user && window.location.pathname !== "/login") {
+        setLocation("/login");
       }
     });
 

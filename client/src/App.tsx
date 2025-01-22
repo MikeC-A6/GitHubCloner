@@ -1,8 +1,8 @@
 import { Switch, Route, useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
-import Home from "./pages/Home";
-import Login from "./pages/Login";
+import Home from "@/pages/Home";
+import Login from "@/pages/Login";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { useEffect } from "react";
@@ -24,11 +24,7 @@ function PrivateRoute({ component: Component }: { component: React.ComponentType
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
-  if (!user) {
-    return null;
-  }
-
-  return <Component />;
+  return user ? <Component /> : null;
 }
 
 function Layout({ children }: { children: React.ReactNode }) {
@@ -68,33 +64,16 @@ function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Separate component for routes to ensure they're wrapped in AuthProvider
-function AppRoutes() {
-  const { user } = useAuth();
-  const [, setLocation] = useLocation();
-
-  useEffect(() => {
-    if (user) {
-      setLocation("/");
-    }
-  }, [user, setLocation]);
-
-  return (
-    <Layout>
-      <Switch>
-        <Route path="/login" component={Login} />
-        <Route path="/" component={() => <PrivateRoute component={Home} />} />
-        <Route component={NotFound} />
-      </Switch>
-    </Layout>
-  );
-}
-
-// Root component that provides auth context
 function App() {
   return (
     <AuthProvider>
-      <AppRoutes />
+      <Layout>
+        <Switch>
+          <Route path="/login" component={Login} />
+          <Route path="/" component={() => <PrivateRoute component={Home} />} />
+          <Route component={NotFound} />
+        </Switch>
+      </Layout>
     </AuthProvider>
   );
 }

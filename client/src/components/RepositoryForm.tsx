@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { FolderIcon, Github, Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useState, useRef } from "react";
+import { analyzeRepository } from "@/lib/api";
 
 interface RepositoryFormProps {
   onAnalyzeStart: () => void;
@@ -25,8 +26,6 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
   const [analyzeStage, setAnalyzeStage] = useState<string>("");
   const directoryInputRef = useRef<HTMLInputElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
-  const maxFileSize = 50 * 1024 * 1024; // 50MB per file
-  const maxTotalSize = maxFileSize * 10; // 500MB total
 
   const form = useForm<FormValues>({
     defaultValues: {
@@ -40,102 +39,69 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
 
   const analyzeMutation = useMutation({
     mutationFn: async (values: FormValues) => {
-      const formData = new FormData();
-      formData.append('sourceType', values.sourceType);
+      let formData = new FormData();
 
       if (values.sourceType === 'github') {
-        formData.append('githubUrl', values.githubUrl);
-        if (values.directoryPath) {
-          formData.append('directoryPath', values.directoryPath);
-        }
-      } else if (selectedFiles) {
-        let totalSize = 0;
-        for (let i = 0; i < selectedFiles.length; i++) {
-          const file = selectedFiles[i];
-          if (file.size > maxFileSize) {
-            throw new Error(`File ${file.name} exceeds the maximum size limit of 50MB`);
-          }
-          totalSize += file.size;
+        const request = {
+          sourceType: values.sourceType,
+          githubUrl: values.githubUrl,
+          directoryPath: values.directoryPath || undefined
+        };
+        return analyzeRepository(request);
+      } else {
+        // For local files, we need to handle the files differently
+        if (!selectedFiles) {
+          throw new Error("No files selected");
         }
 
-        if (totalSize > maxTotalSize) {
-          throw new Error("Total file size exceeds 500MB limit");
-        }
-
+        formData.append('sourceType', 'local');
         for (let i = 0; i < selectedFiles.length; i++) {
           formData.append('files', selectedFiles[i]);
-          const progress = Math.min(90, 30 + (i / selectedFiles.length) * 60);
-          setAnalyzeProgress(progress);
-          setAnalyzeStage(`Processing file ${i + 1} of ${selectedFiles.length}...`);
         }
-      }
 
-      const response = await fetch('/api/analyze', {
-        method: 'POST',
-        body: formData,
-      });
+        const response = await fetch('/api/analyze', {
+          method: 'POST',
+          body: formData,
+        });
 
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
-
-      const data = await response.json();
-      console.log('Raw server response:', JSON.stringify(data, null, 2));
-
-      // Transform the data to match the expected format
-      const transformedData = {
-        stats: {
-          fileCount: data.stats?.fileCount || 0,
-          totalSizeBytes: data.stats?.totalSizeBytes || 0,
-          fileTypes: Array.isArray(data.stats?.fileTypes) ? data.stats.fileTypes : []
+        if (!response.ok) {
+          throw new Error(await response.text());
         }
-      };
 
-      console.log('Transformed data:', JSON.stringify(transformedData, null, 2));
-      return transformedData;
+        return response.json();
+      }
     },
     onMutate: () => {
-      console.log('Starting analysis...');
       onAnalyzeStart();
       setAnalyzeProgress(10);
       setAnalyzeStage("Initializing analysis...");
     },
     onSuccess: (data) => {
-      console.log('Analysis completed with data:', JSON.stringify(data, null, 2));
+      console.log('Analysis completed successfully:', data);
       setAnalyzeProgress(100);
       setAnalyzeStage("Analysis complete!");
 
-      if (data && data.stats) {
-        console.log('Valid stats found:', JSON.stringify(data.stats, null, 2));
-        console.log('Calling onAnalyzeComplete with stats');
-
-        toast({
-          title: "Repository analyzed successfully",
-          description: "You can now customize and download the repository content",
-        });
-
-        const values = form.getValues();
-        onAnalyzeComplete(
-          data.stats,
-          values.sourceType === 'github' ? values.githubUrl : undefined,
-          values.directoryPath,
-          selectedFiles
-        );
-      } else {
-        console.error('Invalid response structure:', data);
-        toast({
-          title: "Analysis completed with invalid data",
-          description: "The server response was not in the expected format.",
-          variant: "destructive",
-        });
-        onAnalyzeComplete();
+      if (!data?.stats) {
+        throw new Error('Invalid response: missing stats object');
       }
 
-      // Reset progress after a delay
+      const values = form.getValues();
+      onAnalyzeComplete(
+        data.stats,
+        values.sourceType === 'github' ? values.githubUrl : undefined,
+        values.directoryPath,
+        selectedFiles
+      );
+
       setTimeout(() => {
         setAnalyzeProgress(0);
         setAnalyzeStage("");
       }, 1000);
+
+      toast({
+        title: "Repository analyzed successfully",
+        description: "You can now customize and download the repository content",
+      });
     },
     onError: (error: Error) => {
       console.error('Analysis failed:', error);
@@ -169,7 +135,6 @@ export default function RepositoryForm({ onAnalyzeStart, onAnalyzeComplete }: Re
     try {
       await analyzeMutation.mutateAsync(values);
     } catch (error) {
-      // Error is handled in mutation's onError
       console.error('Form submission failed:', error);
     }
   };

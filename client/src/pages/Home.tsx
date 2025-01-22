@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import RepositoryForm from "@/components/RepositoryForm";
 import PatternManager from "@/components/PatternManager";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 interface FileTypeStats {
   extension: string;
@@ -33,120 +33,110 @@ export default function Home() {
     return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
   };
 
-  const validateStats = (stats?: RepoStats): boolean => {
-    return !!(
-      stats &&
-      typeof stats.fileCount === 'number' &&
-      typeof stats.totalSizeBytes === 'number' &&
-      Array.isArray(stats.fileTypes)
-    );
-  };
-
   const handleAnalyzeComplete = (
-    stats?: RepoStats, 
+    stats: RepoStats | undefined, 
     repoUrl?: string, 
     directoryPath?: string, 
     selectedFiles?: FileList | null
   ) => {
     setAnalyzing(false);
 
-    if (!stats || !validateStats(stats)) {
+    if (!stats) {
+      console.log('No stats provided to handleAnalyzeComplete');
       setAnalysisData(null);
       return;
     }
 
-    const newAnalysisData: AnalysisData = {
+    const newData: AnalysisData = {
       stats: {
         fileCount: stats.fileCount,
         totalSizeBytes: stats.totalSizeBytes,
-        fileTypes: Array.isArray(stats.fileTypes) ? stats.fileTypes : []
+        fileTypes: stats.fileTypes || []
       },
       repoUrl,
       directoryPath,
       selectedFiles: selectedFiles || undefined
     };
 
-    console.log('Setting analysis data:', JSON.stringify(newAnalysisData, null, 2));
-    setAnalysisData(newAnalysisData);
+    console.log('Setting new analysis data:', newData);
+    setAnalysisData(newData);
   };
 
-  useEffect(() => {
-    console.log('Analysis data changed:', JSON.stringify(analysisData, null, 2));
-  }, [analysisData]);
-
   return (
-    <div className="bg-white">
-      <div className="page-header bg-agilesix-blue text-white">
-        <div className="container">
-          <h1 className="text-4xl font-bold tracking-tight">Repository Analysis Tool</h1>
-          <p className="mt-2 text-agilesix-cyan">Analyze and prepare your repository for text conversion</p>
-        </div>
-      </div>
+    <div className="min-h-screen bg-background">
+      <div className="container py-8 max-w-4xl mx-auto">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">Repository Analysis Tool</CardTitle>
+            <CardDescription>
+              Analyze and prepare your repository for text conversion
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <RepositoryForm 
+              onAnalyzeStart={() => {
+                setAnalyzing(true);
+                setAnalysisData(null);
+              }}
+              onAnalyzeComplete={handleAnalyzeComplete}
+            />
+          </CardContent>
+        </Card>
 
-      <div className="section">
-        <div className="container max-w-4xl">
-          <Card className="border-agilesix-light-grey shadow-sm">
+        {analysisData && analysisData.stats && (
+          <Card className="mt-8">
             <CardHeader>
-              <CardTitle className="text-agilesix-blue text-2xl">Repository Details</CardTitle>
-              <CardDescription className="text-agilesix-dark-grey">
-                First, analyze your repository to see its contents and prepare it for text conversion
+              <CardTitle className="text-xl">Analysis Results</CardTitle>
+              <CardDescription>
+                Overview of repository contents and file statistics
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="mb-6 rounded-lg bg-agilesix-light-blue/20 px-4 py-3 text-sm text-agilesix-dark-grey">
-                <p className="font-semibold">The analysis will:</p>
-                <ul className="mt-2 ml-4 list-disc space-y-1">
-                  <li>Calculate total repository size</li>
-                  <li>Identify all file types and their sizes</li>
-                  <li>Help you decide what to exclude before converting</li>
-                </ul>
-              </div>
-              <RepositoryForm 
-                onAnalyzeStart={() => {
-                  setAnalyzing(true);
-                  setAnalysisData(null);
-                }}
-                onAnalyzeComplete={handleAnalyzeComplete}
-              />
-            </CardContent>
-          </Card>
-
-          {analysisData && analysisData.stats && (
-            <Card className="mt-8 border-agilesix-light-grey shadow-sm" data-testid="analysis-results">
-              <CardHeader>
-                <CardTitle className="text-agilesix-blue text-2xl">Analysis Results</CardTitle>
-                <CardDescription className="text-agilesix-dark-grey">
-                  Overview of repository contents and file statistics
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div className="bg-agilesix-light-blue/20 p-6 rounded-lg">
-                    <div className="text-3xl font-bold text-agilesix-blue">
-                      {analysisData.stats.fileCount}
-                    </div>
-                    <div className="text-sm text-agilesix-dark-grey mt-1">Total Files</div>
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="bg-muted p-6 rounded-lg">
+                  <div className="text-3xl font-bold">
+                    {analysisData.stats.fileCount}
                   </div>
-                  <div className="bg-agilesix-light-blue/20 p-6 rounded-lg">
-                    <div className="text-3xl font-bold text-agilesix-blue">
-                      {formatBytes(analysisData.stats.totalSizeBytes)}
-                    </div>
-                    <div className="text-sm text-agilesix-dark-grey mt-1">Total Size</div>
+                  <div className="text-sm text-muted-foreground mt-1">Total Files</div>
+                </div>
+                <div className="bg-muted p-6 rounded-lg">
+                  <div className="text-3xl font-bold">
+                    {formatBytes(analysisData.stats.totalSizeBytes)}
+                  </div>
+                  <div className="text-sm text-muted-foreground mt-1">Total Size</div>
+                </div>
+              </div>
+
+              {analysisData.stats.fileTypes?.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold mb-4">File Types</h3>
+                  <div className="space-y-4">
+                    {analysisData.stats.fileTypes.map((type, i) => (
+                      <div key={i} className="flex justify-between items-center p-3 bg-muted rounded">
+                        <span>{type.extension}</span>
+                        <div className="text-right">
+                          <div className="font-medium">{type.count} files</div>
+                          <div className="text-sm text-muted-foreground">
+                            {formatBytes(type.totalBytes)}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              )}
+            </CardContent>
+          </Card>
+        )}
 
-          <div className="mt-8">
-            <PatternManager 
-              disabled={analyzing} 
-              fileTypes={analysisData?.stats?.fileTypes}
-              repoUrl={analysisData?.repoUrl}
-              directoryPath={analysisData?.directoryPath}
-              selectedFiles={analysisData?.selectedFiles}
-            />
-          </div>
+        <div className="mt-8">
+          <PatternManager 
+            disabled={analyzing} 
+            fileTypes={analysisData?.stats?.fileTypes}
+            repoUrl={analysisData?.repoUrl}
+            directoryPath={analysisData?.directoryPath}
+            selectedFiles={analysisData?.selectedFiles}
+          />
         </div>
       </div>
     </div>

@@ -64,24 +64,21 @@ export const downloadRepositoryAsJsonl = async (url: string, directoryPath?: str
     const branch = 'main'; // Assuming main branch, could be extracted from the URL if needed
     const githubUrl = `${repoBase}/blob/${branch}/${file}`;
 
-    const metadata = metadataMatch ? {
+    // Extract just the file content, skipping the metadata header
+    const contentStart = fileContent.indexOf('\n\n');
+    const pureContent = contentStart !== -1 ? 
+      fileContent.substring(contentStart + 2).trim() : 
+      fileContent.trim();
+
+    const metadata = {
       path: file,
       language: getLanguageFromExtension(file),
       type: 'code',
       directory: file.split('/').slice(0, -1).join('/') || 'root',
-      github_url: metadataMatch[5],
+      github_url: metadataMatch ? metadataMatch[5] : githubUrl,
       size: analysis.stats.fileTypes.find(t => file.endsWith(t.extension))?.totalBytes || 0,
       lastModified: new Date().toISOString(),
-      content: fileContent.split('\n').slice(7).join('\n').trim() // Skip metadata lines
-    } : {
-      path: file,
-      language: getLanguageFromExtension(file),
-      type: 'code',
-      directory: file.split('/').slice(0, -1).join('/') || 'root',
-      github_url: githubUrl,
-      size: analysis.stats.fileTypes.find(t => file.endsWith(t.extension))?.totalBytes || 0,
-      lastModified: new Date().toISOString(),
-      content: fileContent.trim()
+      content: pureContent
     };
 
     return JSON.stringify(metadata);

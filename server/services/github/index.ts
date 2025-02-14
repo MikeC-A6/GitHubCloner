@@ -29,14 +29,16 @@ export const downloadRepository = (url: string, directoryPath?: string) =>
   githubService.downloadRepository(url, directoryPath);
 
 export const downloadRepositoryAsJsonl = async (url: string, directoryPath?: string) => {
-  const { files, content } = await githubService.downloadRepository(url, directoryPath);
+  const content = await githubService.downloadRepository(url, directoryPath);
+  const analysis = await githubService.analyzeRepository(url, directoryPath);
 
-  // Convert content to JSONL format
-  const jsonlContent = files.map((file, index) => {
-    const fileContent = content.split('\n').slice(index, index + 1).join('\n');
+  // Convert content to JSONL format by processing each file
+  const fileContents = content.content.split('\n---\n'); // Assuming files are separated by '---'
+  const jsonlContent = analysis.files.map((file, index) => {
+    const fileContent = fileContents[index] || '';
     return JSON.stringify({
       path: file,
-      content: fileContent,
+      content: fileContent.trim(),
       timestamp: new Date().toISOString()
     });
   }).join('\n');

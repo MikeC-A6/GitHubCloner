@@ -23,12 +23,12 @@ interface PatternManagerProps {
   selectedFiles?: FileList | null;
 }
 
-export default function PatternManager({ 
-  disabled = false, 
-  fileTypes = [], 
-  repoUrl, 
+export default function PatternManager({
+  disabled = false,
+  fileTypes = [],
+  repoUrl,
   directoryPath,
-  selectedFiles 
+  selectedFiles
 }: PatternManagerProps) {
   const [customPatterns, setCustomPatterns] = useState("");
   const [selectedExtensions, setSelectedExtensions] = useState<string[]>([]);
@@ -81,9 +81,10 @@ export default function PatternManager({
   });
 
   const downloadMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (format: 'text' | 'jsonl' = 'text') => {
       const formData = new FormData();
       formData.append('sourceType', repoUrl ? 'github' : 'local');
+      formData.append('format', format);
 
       if (repoUrl) {
         formData.append('githubUrl', repoUrl);
@@ -91,7 +92,6 @@ export default function PatternManager({
           formData.append('directoryPath', directoryPath);
         }
       } else if (selectedFiles) {
-        // Append each file from the selected directory
         for (let i = 0; i < selectedFiles.length; i++) {
           formData.append('files', selectedFiles[i]);
         }
@@ -106,16 +106,12 @@ export default function PatternManager({
         throw new Error(await response.text());
       }
 
-      // Get the filename from the Content-Disposition header
       const contentDisposition = response.headers.get('Content-Disposition');
       const filenameMatch = contentDisposition?.match(/filename="([^"]+)"/);
-      const filename = filenameMatch?.[1] || 'repository.txt';
-
-      // Get the content directly as text
+      const filename = filenameMatch?.[1] || `repository.${format}`;
       const content = await response.text();
-
-      // Create a blob from the text content
-      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const type = format === 'jsonl' ? 'application/x-ndjson' : 'text/plain';
+      const blob = new Blob([content], { type: `${type};charset=utf-8` });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -154,7 +150,7 @@ export default function PatternManager({
 
   const handleExtensionToggle = (extension: string, checked: boolean) => {
     setSelectedExtensions(prev => {
-      const newSelected = checked 
+      const newSelected = checked
         ? [...prev, extension]
         : prev.filter(ext => ext !== extension);
 
@@ -313,7 +309,7 @@ export default function PatternManager({
             <h3 className="font-medium">Convert and Download</h3>
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">
-                Download your repository as a single text file, with all code and contents combined
+                Download your repository content in your preferred format
               </p>
               {(selectedExtensions.length > 0 || customPatterns) && (
                 <p className="text-xs text-muted-foreground">
@@ -322,9 +318,9 @@ export default function PatternManager({
               )}
             </div>
           </div>
-          <div className="flex-shrink-0 ml-4">
+          <div className="flex-shrink-0 ml-4 space-x-2">
             <Button
-              onClick={() => downloadMutation.mutate()}
+              onClick={() => downloadMutation.mutate('text')}
               disabled={disabled || downloadMutation.isPending || (!repoUrl && !selectedFiles)}
               size="lg"
               className="gap-2 whitespace-nowrap"
@@ -332,6 +328,17 @@ export default function PatternManager({
               {downloadMutation.isPending && <Loader2 className="w-5 h-5 animate-spin" />}
               <Download className="w-5 h-5" />
               <span>{downloadMutation.isPending ? "Converting..." : "Download as Text"}</span>
+            </Button>
+            <Button
+              onClick={() => downloadMutation.mutate('jsonl')}
+              disabled={disabled || downloadMutation.isPending || (!repoUrl && !selectedFiles)}
+              size="lg"
+              variant="secondary"
+              className="gap-2 whitespace-nowrap"
+            >
+              {downloadMutation.isPending && <Loader2 className="w-5 h-5 animate-spin" />}
+              <Download className="w-5 h-5" />
+              <span>{downloadMutation.isPending ? "Converting..." : "Download as JSONL"}</span>
             </Button>
           </div>
         </div>

@@ -57,9 +57,10 @@ export async function analyzeRepository(request: AnalyzeRequest): Promise<Analyz
   return response.json();
 }
 
-export async function downloadRepository(request: AnalyzeRequest): Promise<void> {
+export async function downloadRepository(request: AnalyzeRequest, format: 'text' | 'jsonl' = 'text'): Promise<void> {
   const formData = new FormData();
   formData.append('sourceType', request.sourceType);
+  formData.append('format', format);
 
   if (request.sourceType === 'github') {
     if (request.githubUrl) formData.append('githubUrl', request.githubUrl);
@@ -82,13 +83,14 @@ export async function downloadRepository(request: AnalyzeRequest): Promise<void>
   // Get the filename from the Content-Disposition header
   const contentDisposition = response.headers.get('Content-Disposition');
   const filenameMatch = contentDisposition?.match(/filename="([^"]+)"/);
-  const filename = filenameMatch?.[1] || 'repository.txt';
+  const filename = filenameMatch?.[1] || `repository.${format}`;
 
   // Get the content directly as text
   const content = await response.text();
 
-  // Create a blob from the text content
-  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  // Create a blob with the appropriate type
+  const type = format === 'jsonl' ? 'application/x-ndjson' : 'text/plain';
+  const blob = new Blob([content], { type: `${type};charset=utf-8` });
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
 import type { Request, Response, NextFunction } from "express";
-import { analyzeGitHubRepo, downloadRepository } from "./services/github/index.js";
+import { analyzeGitHubRepo, downloadRepository, downloadRepositoryAsJsonl } from "./services/github/index.js";
 import { analyzeLocalFiles } from "./services/local/local-analyzer.js";
 import { getPatterns, updatePatterns, resetToDefaultPatterns } from "./services/patterns.js";
 
@@ -54,18 +54,25 @@ export function registerRoutes(app: Express): Server {
 
   app.post("/api/download", upload.array('files'), async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { sourceType, githubUrl, directoryPath } = req.body;
-      console.log('Download request:', { sourceType, githubUrl, directoryPath });
+      const { sourceType, githubUrl, directoryPath, format = 'text' } = req.body;
+      console.log('Download request:', { sourceType, githubUrl, directoryPath, format });
 
       if (sourceType === 'github') {
         if (!githubUrl) {
           return res.status(400).json({ message: "GitHub URL is required" });
         }
 
-        const { content, filename } = await downloadRepository(githubUrl, directoryPath);
-        res.setHeader('Content-Type', 'text/plain');
-        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-        return res.send(content);
+        if (format === 'jsonl') {
+          const { content, filename } = await downloadRepositoryAsJsonl(githubUrl, directoryPath);
+          res.setHeader('Content-Type', 'application/x-ndjson');
+          res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+          return res.send(content);
+        } else {
+          const { content, filename } = await downloadRepository(githubUrl, directoryPath);
+          res.setHeader('Content-Type', 'text/plain');
+          res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+          return res.send(content);
+        }
       }
 
       // Handle local file download

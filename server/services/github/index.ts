@@ -28,5 +28,25 @@ export const analyzeGitHubRepo = (url: string, directoryPath?: string) =>
 export const downloadRepository = (url: string, directoryPath?: string) =>
   githubService.downloadRepository(url, directoryPath);
 
+export const downloadRepositoryAsJsonl = async (url: string, directoryPath?: string) => {
+  const { files, content } = await githubService.downloadRepository(url, directoryPath);
+
+  // Convert content to JSONL format
+  const jsonlContent = files.map((file, index) => {
+    const fileContent = content.split('\n').slice(index, index + 1).join('\n');
+    return JSON.stringify({
+      path: file,
+      content: fileContent,
+      timestamp: new Date().toISOString()
+    });
+  }).join('\n');
+
+  const repoName = url.split('/').pop()?.replace('.git', '') || 'repository';
+  return {
+    content: jsonlContent,
+    filename: `${repoName}.jsonl`
+  };
+};
+
 // Re-export types and interfaces
 export * from './interfaces.js';

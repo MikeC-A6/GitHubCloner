@@ -91,6 +91,7 @@ export class ContentManager implements IContentManager, IContentFormatter {
         `Language: ${content.language}`,
         `Type: ${content.contentType}`,
         `Directory: ${content.directoryContext}`,
+        `GitHub URL: ${content.githubUrl}`,
         `Size: ${content.metadata.size}`,
         `Last Modified: ${content.metadata.modified}`,
         '='.repeat(80),

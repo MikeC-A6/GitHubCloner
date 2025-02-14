@@ -67,7 +67,7 @@ export default function Home() {
       <div className="container py-8 max-w-4xl mx-auto">
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl">Repository Analysis Tool</CardTitle>
+            <CardTitle className="text-2xl">GitHub Repository to Text Tool</CardTitle>
             <CardDescription>
               Analyze and prepare your repository for text conversion
             </CardDescription>

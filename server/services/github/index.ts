@@ -57,13 +57,19 @@ export const downloadRepositoryAsJsonl = async (url: string, directoryPath?: str
     const fileContent = fileContents[index] || '';
 
     // Extract metadata from the content header
-    const metadataMatch = fileContent.match(/File: (.*?)\nLanguage: (.*?)\nType: (.*?)\nDirectory: (.*?)\nSize: (.*?)\nLast Modified: (.*?)\n/);
+    const metadataMatch = fileContent.match(/File: (.*?)\nLanguage: (.*?)\nType: (.*?)\nDirectory: (.*?)\nGitHub URL: (.*?)\nSize: (.*?)\nLast Modified: (.*?)\n/);
+
+    // Construct the GitHub URL for the file
+    const repoBase = url.replace(/\.git$/, '');
+    const branch = 'main'; // Assuming main branch, could be extracted from the URL if needed
+    const githubUrl = `${repoBase}/blob/${branch}/${file}`;
 
     const metadata = metadataMatch ? {
       path: file,
       language: getLanguageFromExtension(file),
       type: 'code',
       directory: file.split('/').slice(0, -1).join('/') || 'root',
+      github_url: metadataMatch[5],
       size: analysis.stats.fileTypes.find(t => file.endsWith(t.extension))?.totalBytes || 0,
       lastModified: new Date().toISOString(),
       content: fileContent.split('\n').slice(7).join('\n').trim() // Skip metadata lines
@@ -72,6 +78,7 @@ export const downloadRepositoryAsJsonl = async (url: string, directoryPath?: str
       language: getLanguageFromExtension(file),
       type: 'code',
       directory: file.split('/').slice(0, -1).join('/') || 'root',
+      github_url: githubUrl,
       size: analysis.stats.fileTypes.find(t => file.endsWith(t.extension))?.totalBytes || 0,
       lastModified: new Date().toISOString(),
       content: fileContent.trim()
